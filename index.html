@@ -1,216 +1,263 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta charset="UTF-8">
-<title>Voltage Drop Calculator</title>
-<style>
-  :root {
-    --bg: #f7f7f7;
-    --card: #ffffff;
-    --text: #1e1e1e;
-    --border: #d0d0d0;
-    --accent: #3b82f6;
-  }
-  [data-theme="dark"] {
-    --bg: #121212;
-    --card: #1e1e1e;
-    --text: #e5e5e5;
-    --border: #333;
-    --accent: #3b82f6;
-  }
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta charset="UTF-8" />
+        <title>Voltage Drop Calculator</title>
+        <style>
+            :root {
+                --bg: #f7f7f7;
+                --card: #ffffff;
+                --text: #1e1e1e;
+                --border: #d0d0d0;
+                --accent: #3b82f6;
+            }
+            [data-theme="dark"] {
+                --bg: #121212;
+                --card: #1e1e1e;
+                --text: #e5e5e5;
+                --border: #333;
+                --accent: #3b82f6;
+            }
 
-  body {
-    font-family: system-ui, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    max-width: 360px; /* smaller width */
-    margin: 40px auto;
-    padding: 20px;
-    transition: background .2s, color .2s;
-  }
+            body {
+                font-family: system-ui, sans-serif;
+                background: var(--bg);
+                color: var(--text);
+                margin: 0;
+                padding: 16px;
+                min-height: 100vh;
+                box-sizing: border-box;
+            }
 
-  .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 15px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    transition: background .2s, border .2s;
-  }
+            .card {
+                background: var(--card);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 15px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+                transition: background 0.2s, border 0.2s;
+                max-width: 420px;
+                margin: 16px auto;
+            }
+            @media (max-width: 600px) {
+                .card {
+                    max-width: 100%;
+                    margin: 8px 0;
+                    border-radius: 0;
+                }
+            }
 
-  .row {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 10px;
-    align-items: flex-end;
-  }
+            .row {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 10px;
+                align-items: flex-end;
+            }
 
-  .field {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    font-size: 13px;
-  }
+            .field {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                font-size: 13px;
+            }
 
-  input, select {
-    padding: 5px 6px;
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    background: var(--card);
-    color: var(--text);
-    transition: border .2s, background .2s;
-  }
+            input,
+            select {
+                padding: 5px 6px;
+                border: 1px solid var(--border);
+                border-radius: 5px;
+                background: var(--card);
+                color: var(--text);
+                transition: border 0.2s, background 0.2s;
+            }
 
-  button {
-    padding: 5px 10px;
-    border-radius: 5px;
-    cursor: pointer;
-    border: 1px solid var(--border);
-    background: var(--card);
-    color: var(--text);
-  }
+            button {
+                padding: 5px 10px;
+                border-radius: 5px;
+                cursor: pointer;
+                border: 1px solid var(--border);
+                background: var(--card);
+                color: var(--text);
+            }
 
-  .actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
+            .actions {
+                display: flex;
+                gap: 8px;
+                margin-top: 10px;
+                flex-wrap: wrap;
+                align-items: center;
+            }
 
-  h2 {
-    font-size: 1.2rem;
-    margin-bottom: 10px;
-  }
+            h2 {
+                font-size: 1.2rem;
+                margin: 0 0 6px;
+            }
 
-  #result {
-    margin-top: 10px;
-    font-size: 0.95rem;
-    font-weight: 500;
-  }
-</style>
-</head>
-<body data-theme="light">
+            .page-header {
+                max-width: 420px;
+                margin: 16px auto 0;
+                text-align: center;
+            }
 
-<h2>Voltage Drop Calculator</h2>
+            .dark-toggle {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 0.9rem;
+            }
 
-<label>
-  <input type="checkbox" id="darkToggle">
-  Dark Mode
-</label>
+            #result {
+                margin-top: 10px;
+                font-size: 0.95rem;
+                font-weight: 500;
+            }
+        </style>
+    </head>
+    <body data-theme="light">
+        <div class="page-header">
+            <h2>Voltage Drop Calculator</h2>
+            <label class="dark-toggle">
+                <input type="checkbox" id="darkToggle" />
+                Dark Mode
+            </label>
+        </div>
 
-<div class="card" style="margin-top:10px;">
-  <div class="row">
-    <div class="field">
-      <label>Voltage (V)</label>
-      <input id="voltage" type="number" step="0.1" min="0" oninput="sanitizeNumber(this)" value="12.6">
-    </div>
-  </div>
+        <div class="card" style="margin-top: 10px">
+            <div class="row">
+                <div class="field">
+                    <label>Voltage (V)</label>
+                    <input
+                        id="voltage"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        oninput="sanitizeNumber(this)"
+                        value="12.6"
+                    />
+                </div>
+            </div>
 
-  <div class="row">
-    <div class="field">
-      <label>Current (Amps)</label>
-      <input id="amps"    type="number" step="0.1" min="0" oninput="sanitizeNumber(this)" value="5">
-    </div>
-  </div>
+            <div class="row">
+                <div class="field">
+                    <label>Current (Amps)</label>
+                    <input
+                        id="amps"
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        oninput="sanitizeNumber(this)"
+                        value="5"
+                    />
+                </div>
+            </div>
 
-  <div id="rows"></div>
+            <div id="rows"></div>
 
-  <div class="actions">
-    <button onclick="addRow()">Add Segment</button>
-    <button onclick="clearRows()">Clear Segments</button>
-    <label style="display:flex; align-items:center; margin-left:auto;">
-      <input id="roundTrip" type="checkbox" checked style="margin-right:4px;"> Round Trip
-    </label>
-  </div>
+            <div class="actions">
+                <button onclick="addRow()">Add Segment</button>
+                <button onclick="clearRows()">Clear Segments</button>
+                <label
+                    style="
+                        display: flex;
+                        align-items: center;
+                        margin-left: auto;
+                    "
+                >
+                    <input
+                        id="roundTrip"
+                        type="checkbox"
+                        checked
+                        style="margin-right: 4px"
+                    />
+                    Round Trip
+                </label>
+            </div>
 
-  <div id="result">Drop: 0.000 V (0.00%)</div>
-</div>
+            <div id="result">Drop: 0.000 V (0.00%)</div>
+        </div>
 
-<script>
-const resistance = {
-  8: 0.000628, 10: 0.000999, 12: 0.001588,
-  14: 0.002525, 16: 0.004016, 18: 0.006385,
-  20: 0.01015, 22: 0.01614,
-};
+        <script>
+            const resistance = {
+              8: 0.000628, 10: 0.000999, 12: 0.001588,
+              14: 0.002525, 16: 0.004016, 18: 0.006385,
+              20: 0.01015, 22: 0.01614,
+            };
 
-// Dark mode
-const darkToggle = document.getElementById('darkToggle');
-const savedTheme = localStorage.getItem('theme');
-if (savedTheme) {
-  document.body.dataset.theme = savedTheme;
-  darkToggle.checked = savedTheme === 'dark';
-}
-darkToggle.addEventListener('change', e => {
-  const theme = e.target.checked ? 'dark' : 'light';
-  document.body.dataset.theme = theme;
-  localStorage.setItem('theme', theme);
-});
+            const darkToggle = document.getElementById('darkToggle');
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+              document.body.dataset.theme = savedTheme;
+              darkToggle.checked = savedTheme === 'dark';
+            }
+            darkToggle.addEventListener('change', e => {
+              const theme = e.target.checked ? 'dark' : 'light';
+              document.body.dataset.theme = theme;
+              localStorage.setItem('theme', theme);
+            });
 
-function addRow() {
-  const rowCount = document.querySelectorAll('#rows .row').length;
-  const showLabel = rowCount === 0 ? true : false;
+            function addRow() {
+              const rowCount = document.querySelectorAll('#rows .row').length;
+              const showLabel = rowCount === 0 ? true : false;
 
-  const div = document.createElement('div');
-  div.className = 'row';
-  div.innerHTML = `
-    <div class="field">
-      ${showLabel ? '<label>Span Length (in)</label>' : ''}
-      <input type="number" class="len" value="0"
-       min="0" step="0.1" oninput="sanitizeNumber(this)">
-    </div>
-    <div class="field">
-      ${showLabel ? '<label>AWG</label>' : ''}
-      <select class="awg">
-        ${Object.keys(resistance).map(a => `<option>${a}</option>`).join('')}
-      </select>
-    </div>
-    <button onclick="this.parentNode.remove(); autoCalc()">✕</button>
-  `;
-  rows.appendChild(div);
-  autoCalc();
-}
+              const div = document.createElement('div');
+              div.className = 'row';
+              div.innerHTML = `
+                <div class="field">
+                  ${showLabel ? '<label>Span Length (in)</label>' : ''}
+                  <input type="number" class="len" value="0"
+                   min="0" step="0.1" oninput="sanitizeNumber(this)">
+                </div>
+                <div class="field">
+                  ${showLabel ? '<label>AWG</label>' : ''}
+                  <select class="awg">
+                    ${Object.keys(resistance).map(a => `<option>${a}</option>`).join('')}
+                  </select>
+                </div>
+                <button onclick="this.parentNode.remove(); autoCalc()">✕</button>
+              `;
+              rows.appendChild(div);
+              autoCalc();
+            }
 
-function sanitizeNumber(el) {
-  if (el.value === '') return;
-  const v = Number(el.value);
-  if (!Number.isFinite(v) || v < 0) {
-    el.value = '';
-  } else {
-    el.value = v;
-  }
-  autoCalc();
-}
+            function sanitizeNumber(el) {
+              if (el.value === '') return;
+              const v = Number(el.value);
+              if (!Number.isFinite(v) || v < 0) {
+                el.value = '';
+              } else {
+                el.value = v;
+              }
+              autoCalc();
+            }
 
 
-function clearRows() {
-  rows.innerHTML = '';
-  addRow();
-}
+            function clearRows() {
+              rows.innerHTML = '';
+              addRow();
+            }
 
-function autoCalc() {
-  const I = parseFloat(amps.value) || 0;
-  const V_source = parseFloat(voltage.value) || 12.6;
-  const round = roundTrip.checked;
-  let R_total = 0;
+            function autoCalc() {
+              const I = parseFloat(amps.value) || 0;
+              const V_source = parseFloat(voltage.value) || 12.6;
+              const round = roundTrip.checked;
+              let R_total = 0;
 
-  document.querySelectorAll('#rows .row').forEach(row => {
-    const inches = parseFloat(row.querySelector('.len').value) || 0;
-    const awg = parseInt(row.querySelector('.awg').value);
-    const ft = inches / 12;
-    R_total += resistance[awg] * ft * (round ? 2 : 1);
-  });
+              document.querySelectorAll('#rows .row').forEach(row => {
+                const inches = parseFloat(row.querySelector('.len').value) || 0;
+                const awg = parseInt(row.querySelector('.awg').value);
+                const ft = inches / 12;
+                R_total += resistance[awg] * ft * (round ? 2 : 1);
+              });
 
-  const V_drop = I * R_total;
-  const pct = V_drop / V_source * 100;
-  result.textContent = `Drop: ${V_drop.toFixed(3)} V (${pct.toFixed(2)}%)`;
-}
+              const V_drop = I * R_total;
+              const pct = V_drop / V_source * 100;
+              result.textContent = `Drop: ${V_drop.toFixed(3)} V (${pct.toFixed(2)}%)`;
+            }
 
-document.addEventListener('input', autoCalc);
+            document.addEventListener('input', autoCalc);
 
-// start with one row
-addRow();
-</script>
-
-</body>
+            addRow();
+        </script>
+    </body>
 </html>
