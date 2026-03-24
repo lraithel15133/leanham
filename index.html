@@ -20,10 +20,10 @@
         *{box-sizing:border-box;margin:0}
         body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);padding:12px;line-height:1.5}
         .container{max-width:1400px;margin:0 auto}
-        h1{font-size:1.4rem} h2{font-size:1.05rem;margin-bottom:8px} h3{font-size:0.92rem;margin-bottom:6px}
+        h1{font-size:1.4rem} h2{font-size:1.05rem;margin-bottom:8px} h3{font-size:.92rem;margin-bottom:6px}
         .card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px}
         .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
-        .toggle{display:flex;align-items:center;gap:5px;font-size:0.85rem;cursor:pointer}
+        .toggle{display:flex;align-items:center;gap:5px;font-size:.85rem;cursor:pointer}
 
         .upload-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
         .upload-zone{flex:1;min-width:180px;border:2px dashed var(--border);border-radius:8px;padding:20px 14px;text-align:center;cursor:pointer;transition:all .2s;font-size:.88rem}
@@ -88,10 +88,21 @@
         .info-label{color:var(--text-muted);font-size:.68rem;text-transform:uppercase}
         .color-swatch{display:inline-block;width:11px;height:11px;border-radius:2px;border:1px solid var(--border);vertical-align:middle;margin-right:3px}
 
-        /* Load config table */
         .load-table input[type="number"]{width:65px;padding:3px 6px;border:1px solid var(--border);border-radius:3px;background:var(--card);color:var(--text);font-size:.82rem;text-align:right}
         .load-table select{padding:3px 4px;border:1px solid var(--border);border-radius:3px;background:var(--card);color:var(--text);font-size:.78rem}
+        .load-table tr[data-conn]{cursor:pointer;transition:background .1s}
+        .load-table tr[data-conn]:hover td{background:var(--accent-light) !important}
+        .load-table tr[data-conn].hl td{background:var(--accent-light) !important;border-color:var(--accent)}
         .role-power{color:var(--danger)} .role-ground{color:var(--success)} .role-load{color:var(--accent)} .role-signal{color:var(--warn)}
+
+        /* Scenario toggles */
+        .scenario-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+        .scenario-toggle{display:flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;cursor:pointer;transition:all .15s;user-select:none}
+        .scenario-toggle:hover{border-color:var(--accent)}
+        .scenario-toggle.on{background:var(--accent-light);border-color:var(--accent);font-weight:600}
+        .scenario-toggle input{margin:0}
+        .scenario-preset{padding:3px 10px;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--text);cursor:pointer;font-size:.75rem}
+        .scenario-preset:hover{border-color:var(--accent);color:var(--accent)}
 
         @media(max-width:700px){body{padding:6px}.drawing-layout{flex-direction:column}.drawing-panel{min-width:unset}.groups-panel{max-height:300px}.svg-container svg{height:280px}}
     </style>
@@ -111,7 +122,6 @@
     <div id="resultsSection" class="hidden">
         <div class="card"><h2>Harness Information</h2><div class="info-grid" id="harnessInfo"></div></div>
 
-        <!-- System Parameters -->
         <div class="card">
             <h2>System Parameters</h2>
             <div class="inputs-row">
@@ -123,10 +133,9 @@
             </div>
         </div>
 
-        <!-- Load / Connector Configuration -->
         <div class="card">
             <h2>Circuit &amp; Load Configuration</h2>
-            <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:8px">Set the role and current for each connector. Current on shared wires (e.g. main supply) is automatically summed from all loads.</p>
+            <p style="font-size:.76rem;color:var(--text-muted);margin-bottom:8px">Set the role and current for each connector. Hover a row to highlight it on the drawing.</p>
             <div class="table-wrap">
                 <table class="load-table">
                     <thead><tr><th>Connector</th><th>Description</th><th>Role</th><th>Current (A)</th><th>Pins</th></tr></thead>
@@ -135,9 +144,16 @@
             </div>
         </div>
 
+        <!-- Active Scenario -->
+        <div class="card" id="scenarioCard" class="hidden">
+            <h2>Active Scenario</h2>
+            <p style="font-size:.76rem;color:var(--text-muted);margin-bottom:8px">Select which relays are energized. Only active relay circuits contribute to shared wire currents. Circuits without a relay are always included.</p>
+            <div class="scenario-row" id="scenarioToggles"></div>
+        </div>
+
         <div id="summarySection" class="summary-grid"></div>
 
-        <div class="drawing-layout" id="drawingLayout" class="hidden">
+        <div class="drawing-layout hidden" id="drawingLayout">
             <div class="drawing-panel">
                 <div class="svg-container" id="svgContainer">
                     <div class="svg-controls">
@@ -175,10 +191,10 @@ let nwfData = null, dsiData = null;
 let activeGroup = null;
 let svgTransform = { x: 0, y: 0, scale: 1 };
 let circuitGroups = [];
-// connConfig[connName] = { role: 'power'|'ground'|'load'|'signal'|'passthrough', current: number }
-let connConfig = {};
-// Calculated: wireCurrents[wireName] = total amps flowing through wire
-let wireCurrents = {};
+let connConfig = {};      // connConfig[connName] = { role, current }
+let wireCurrents = {};    // wireCurrents[wireName] = amps in active scenario
+let activeRelays = {};    // activeRelays[relayName] = true/false
+let highlightedConn = null; // connector highlighted from config table hover
 
 // ═══════════════════════════════════════════════════════════
 // HELPERS
@@ -187,7 +203,6 @@ const CMAP = {BLACK:'#222',RED:'#d32f2f',BLUE:'#1565c0',GREEN:'#2e7d32',YELLOW:'
 function colorCSS(n){if(!n)return'#999';return CMAP[n.split('/')[0].toUpperCase()]||'#999';}
 function swatchHTML(c){return `<span class="color-swatch" style="background:${colorCSS(c)}"></span>${c||''}`;}
 function statusOf(pct,max){return pct>max?'fail':pct>max*.7?'warn':'ok';}
-function statusBadge(pct,max){const s=statusOf(pct,max);return `<span class="badge badge-${s}">${s==='fail'?'FAIL':s==='warn'?'WARN':'OK'}</span>`;}
 function getCSA(w){if(!nwfData)return 1;const s=nwfData.spools[w.spool];return s?(parseFloat(s.params.WIRE_CSA)||1):1;}
 function getColor(w){if(!nwfData)return'';const s=nwfData.spools[w.spool];return s?(s.params.COLOR||''):'';}
 function calcDrop(lenMM,csa,amps,rho){return(amps*rho*(lenMM/1000))/csa;}
@@ -216,7 +231,7 @@ function setupDrop(zoneId,inputId,handler){
 function markLoaded(zone,name,clearFnName){zone.classList.add('loaded');zone.innerHTML=`<span class="file-name">${name}</span><button class="clear-btn" onclick="event.stopPropagation();${clearFnName}()">Clear</button>`;}
 function loadNWF(file,zone){const r=new FileReader();r.onload=e=>{nwfData=parseNWF(e.target.result);markLoaded(zone,file.name,'clearNWF');autoDetectRoles();onDataChange();};r.readAsText(file);}
 function loadDSI(file,zone){const r=new FileReader();r.onload=e=>{dsiData=parseDSI(e.target.result);markLoaded(zone,file.name,'clearDSI');onDataChange();};r.readAsText(file);}
-function clearNWF(){nwfData=null;connConfig={};const z=document.getElementById('nwfZone');z.classList.remove('loaded');z.innerHTML='<div class="upload-icon">&#128268;</div><div>Drop <strong>.nwf</strong> file</div><input type="file" id="nwfInput" accept=".nwf,.txt" />';setupDrop('nwfZone','nwfInput',loadNWF);onDataChange();}
+function clearNWF(){nwfData=null;connConfig={};activeRelays={};const z=document.getElementById('nwfZone');z.classList.remove('loaded');z.innerHTML='<div class="upload-icon">&#128268;</div><div>Drop <strong>.nwf</strong> file</div><input type="file" id="nwfInput" accept=".nwf,.txt" />';setupDrop('nwfZone','nwfInput',loadNWF);onDataChange();}
 function clearDSI(){dsiData=null;const z=document.getElementById('dsiZone');z.classList.remove('loaded');z.innerHTML='<div class="upload-icon">&#128209;</div><div>Drop <strong>DSI .csv</strong> <em>(optional, for drawing)</em></div><input type="file" id="dsiInput" accept=".csv,.txt,.dsi" />';setupDrop('dsiZone','dsiInput',loadDSI);onDataChange();}
 setupDrop('nwfZone','nwfInput',loadNWF);
 setupDrop('dsiZone','dsiInput',loadDSI);
@@ -304,11 +319,9 @@ function autoDetectRoles(){
     if(!nwfData)return;
     connConfig={};
     for(const c of Object.values(nwfData.connectors)){
-        if(c.name.startsWith('SP-'))continue; // splices are always pass-through
+        if(c.name.startsWith('SP-'))continue;
         const desc=((c.params.DESCRIPTION||'')+(c.params.MODEL_NAME||'')).replace(/"/g,'').toUpperCase();
         let role='load',current=5;
-
-        // Ring terminals: check wire colors to determine power vs ground
         if(desc.includes('RING')){
             const connWires=nwfData.wires.filter(w=>(w.from&&w.from.conn===c.name)||(w.to&&w.to.conn===c.name));
             const colors=connWires.map(w=>getColor(w).toUpperCase());
@@ -318,8 +331,7 @@ function autoDetectRoles(){
         else if(desc.includes('FUSE')){role='passthrough';current=0;}
         else if(desc.includes('RELAY')){role='passthrough';current=0;}
         else if(desc.includes('RECP')){role='signal';current=0.15;}
-        else{role='load';current=5;} // PLUG connectors = loads
-
+        else{role='load';current=5;}
         connConfig[c.name]={role,current};
     }
 }
@@ -327,6 +339,8 @@ function autoDetectRoles(){
 // ═══════════════════════════════════════════════════════════
 // CIRCUIT GRAPH
 // ═══════════════════════════════════════════════════════════
+function getConnDesc(name){return((nwfData.connectors[name]?.params?.DESCRIPTION||'')+(nwfData.connectors[name]?.params?.MODEL_NAME||'')).toUpperCase();}
+
 function buildCircuitGraph(){
     const adj={};
     function addEdge(a,b,wire,internal=false){
@@ -338,17 +352,16 @@ function buildCircuitGraph(){
         if(!w.from||!w.to)continue;
         addEdge(`${w.from.conn}:${w.from.pin}`,`${w.to.conn}:${w.to.pin}`,w);
     }
-    // Internal connections
     for(const c of Object.values(nwfData.connectors)){
-        const desc=((c.params.DESCRIPTION||'')+(c.params.MODEL_NAME||'')).toUpperCase();
+        const desc=getConnDesc(c.name);
         if(desc.includes('FUSE')){
             for(let i=0;i<c.pins.length;i++)for(let j=i+1;j<c.pins.length;j++)
                 addEdge(`${c.name}:${c.pins[i].name}`,`${c.name}:${c.pins[j].name}`,{name:`[${c.name} fuse]`,spool:'',lengthMM:0,from:{conn:c.name,pin:c.pins[i].name},to:{conn:c.name,pin:c.pins[j].name},_internal:true},true);
         }
         if(desc.includes('RELAY')){
             const pn=c.pins.map(p=>p.name);
-            if(pn.includes('30')&&pn.includes('87'))addEdge(`${c.name}:30`,`${c.name}:87`,{name:`[${c.name} contact]`,spool:'',lengthMM:0,from:{conn:c.name,pin:'30'},to:{conn:c.name,pin:'87'},_internal:true},true);
-            if(pn.includes('85')&&pn.includes('86'))addEdge(`${c.name}:85`,`${c.name}:86`,{name:`[${c.name} coil]`,spool:'',lengthMM:0,from:{conn:c.name,pin:'85'},to:{conn:c.name,pin:'86'},_internal:true},true);
+            if(pn.includes('30')&&pn.includes('87'))addEdge(`${c.name}:30`,`${c.name}:87`,{name:`[${c.name} contact]`,spool:'',lengthMM:0,from:{conn:c.name,pin:'30'},to:{conn:c.name,pin:'87'},_internal:true,_relay:c.name},true);
+            if(pn.includes('85')&&pn.includes('86'))addEdge(`${c.name}:85`,`${c.name}:86`,{name:`[${c.name} coil]`,spool:'',lengthMM:0,from:{conn:c.name,pin:'85'},to:{conn:c.name,pin:'86'},_internal:true,_relay:c.name},true);
         }
     }
     return adj;
@@ -356,17 +369,15 @@ function buildCircuitGraph(){
 
 function isTerminal(nodeKey){return !nodeKey.startsWith('SP-');}
 
-function findPathBetween(adj, startKey, endRole) {
-    // BFS from startKey to any pin on a connector with the given role
-    const visited = new Set([startKey]);
-    const queue = [{node:startKey, path:[startKey], wires:[]}];
+function findPathBetween(adj, startKey, endRole){
+    const visited=new Set([startKey]);
+    const queue=[{node:startKey,path:[startKey],wires:[]}];
     while(queue.length){
-        const {node,path,wires} = queue.shift();
-        const [conn] = node.split(':');
-        if(node !== startKey && connConfig[conn] && connConfig[conn].role === endRole){
-            return {to:node, path, wires};
-        }
-        for(const {node:next,wire} of (adj[node]||[])){
+        const{node,path,wires}=queue.shift();
+        const[conn]=node.split(':');
+        if(node!==startKey&&connConfig[conn]&&connConfig[conn].role===endRole)
+            return{to:node,path,wires};
+        for(const{node:next,wire}of(adj[node]||[])){
             if(!visited.has(next)){visited.add(next);queue.push({node:next,path:[...path,next],wires:[...wires,wire]});}
         }
     }
@@ -374,108 +385,111 @@ function findPathBetween(adj, startKey, endRole) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// DETECT CIRCUITS & CALCULATE CURRENTS
+// DETECT CIRCUITS WITH RELAY GROUP AWARENESS
 // ═══════════════════════════════════════════════════════════
 function buildCircuits(){
     if(!nwfData)return[];
-    const adj = buildCircuitGraph();
-    const p = getParams();
-    const groups = [];
+    const adj=buildCircuitGraph();
+    const groups=[];
 
-    // For each load/signal connector, trace supply and return paths
-    for(const [connName, cfg] of Object.entries(connConfig)){
+    for(const[connName,cfg]of Object.entries(connConfig)){
         if(cfg.role!=='load'&&cfg.role!=='signal')continue;
         if(cfg.current<=0)continue;
-
-        const connObj = nwfData.connectors[connName];
+        const connObj=nwfData.connectors[connName];
         if(!connObj)continue;
 
-        // For each pin on this connector that has a wire
         for(const pin of connObj.pins){
-            const pinKey = `${connName}:${pin.name}`;
-            // Check if this pin has any wire
-            const hasWire = nwfData.wires.some(w=>
+            const pinKey=`${connName}:${pin.name}`;
+            const hasWire=nwfData.wires.some(w=>
                 (w.from&&w.from.conn===connName&&w.from.pin===pin.name)||
                 (w.to&&w.to.conn===connName&&w.to.pin===pin.name));
             if(!hasWire)continue;
 
-            // Determine if this pin is supply or ground by wire color
-            const pinWire = nwfData.wires.find(w=>
+            const pinWire=nwfData.wires.find(w=>
                 (w.from&&w.from.conn===connName&&w.from.pin===pin.name)||
                 (w.to&&w.to.conn===connName&&w.to.pin===pin.name));
-            const wireColor = pinWire ? getColor(pinWire).toUpperCase() : '';
-            const isGndPin = wireColor === 'BLACK';
+            const wireColor=pinWire?getColor(pinWire).toUpperCase():'';
+            const isGndPin=wireColor==='BLACK';
+            if(isGndPin)continue;
 
-            if(isGndPin) continue; // We'll pair ground with supply below
-
-            // This is a supply/signal pin — trace to power source
-            const supplyPath = findPathBetween(adj, pinKey, 'power');
-
-            // Find a ground pin on the same connector
-            let returnPath = null;
+            // Trace supply path to power
+            const supplyPath=findPathBetween(adj,pinKey,'power');
+            // Find ground pin on same connector for return path
+            let returnPath=null;
             for(const gndPin of connObj.pins){
-                if(gndPin.name === pin.name) continue;
-                const gndWire = nwfData.wires.find(w=>
+                if(gndPin.name===pin.name)continue;
+                const gw=nwfData.wires.find(w=>
                     (w.from&&w.from.conn===connName&&w.from.pin===gndPin.name)||
                     (w.to&&w.to.conn===connName&&w.to.pin===gndPin.name));
-                if(!gndWire) continue;
-                if(getColor(gndWire).toUpperCase() !== 'BLACK') continue;
-                returnPath = findPathBetween(adj, `${connName}:${gndPin.name}`, 'ground');
-                if(returnPath) break;
+                if(!gw||getColor(gw).toUpperCase()!=='BLACK')continue;
+                returnPath=findPathBetween(adj,`${connName}:${gndPin.name}`,'ground');
+                if(returnPath)break;
+            }
+            // Signal connectors: trace through relay coil to ground
+            if(!returnPath&&cfg.role==='signal'){
+                returnPath=findPathBetween(adj,pinKey,'ground');
+            }
+            if(!supplyPath&&!returnPath)continue;
+
+            // Detect which relay this circuit passes through
+            const allPathWires=[ ...(supplyPath?supplyPath.wires:[]), ...(returnPath?returnPath.wires:[]) ];
+            let relayGroup='none';
+            for(const w of allPathWires){
+                if(w._relay){relayGroup=w._relay;break;}
             }
 
-            // For signal connectors (trigger), the return is through the relay coil to ground
-            if(!returnPath && cfg.role==='signal'){
-                // The trigger wire goes to a relay coil pin (85), which internally connects to 86,
-                // then 86 goes to ground. The path finder handles this via internal edges.
-                // Try tracing from this pin to ground directly (through relay coil)
-                returnPath = findPathBetween(adj, pinKey, 'ground');
-                // This would go: X-005:A → X-009:85 → [coil] → X-009:86 → SP-002 → X-006
-                // We need to split: the path to the relay is "trigger", the rest is "coil ground"
-            }
-
-            if(!supplyPath && !returnPath) continue;
-
-            const supplyWires = supplyPath ? supplyPath.wires.filter(w=>!w._internal) : [];
-            const returnWires = returnPath ? returnPath.wires.filter(w=>!w._internal) : [];
-
-            // Get wire name from the pin to use as circuit name
-            const circuitName = pinWire ? pinWire.name : `${connName}:${pin.name}`;
-            const connDesc = (nwfData.connectors[connName].params.DESCRIPTION||'').replace(/"/g,'');
+            const supplyWires=supplyPath?supplyPath.wires.filter(w=>!w._internal):[];
+            const returnWires=returnPath?returnPath.wires.filter(w=>!w._internal):[];
+            const circuitName=pinWire?pinWire.name:`${connName}:${pin.name}`;
+            const connDesc=(nwfData.connectors[connName].params.DESCRIPTION||'').replace(/"/g,'');
 
             groups.push({
-                name: circuitName,
-                connName, pinName: pin.name,
-                desc: `${connName} pin ${pin.name} — ${connDesc}`,
-                current: cfg.current,
+                name:circuitName, connName, pinName:pin.name,
+                desc:`${connName} pin ${pin.name} — ${connDesc}`,
+                current:cfg.current,
+                relayGroup,
                 supplyWires, returnWires,
-                allWireNames: [...supplyWires,...returnWires].map(w=>w.name)
+                allWireNames:[...supplyWires,...returnWires].map(w=>w.name)
             });
         }
+    }
+
+    // Auto-detect relay groups and initialize toggles
+    // Default: only ONE relay active at a time (realistic scenario)
+    const relays=[...new Set(groups.map(g=>g.relayGroup).filter(r=>r!=='none'))];
+    const isFirstLoad=!relays.some(r=>r in activeRelays);
+    for(const r of relays){
+        if(!(r in activeRelays)) activeRelays[r]=isFirstLoad?(r===relays[0]):false;
     }
 
     return groups;
 }
 
+// ═══════════════════════════════════════════════════════════
+// CURRENT CALCULATION — RELAY-AWARE
+// ═══════════════════════════════════════════════════════════
 function calculateWireCurrents(){
-    // For each wire, sum the currents of all circuits that flow through it
-    wireCurrents = {};
-    for(const w of nwfData.wires) wireCurrents[w.name] = 0;
+    wireCurrents={};
+    for(const w of nwfData.wires) wireCurrents[w.name]=0;
 
+    // Only sum currents from circuits whose relay is active (or have no relay)
     for(const g of circuitGroups){
-        for(const w of [...g.supplyWires, ...g.returnWires]){
-            wireCurrents[w.name] = (wireCurrents[w.name]||0) + g.current;
+        const isActive = g.relayGroup==='none' || activeRelays[g.relayGroup];
+        if(!isActive)continue;
+        for(const w of[...g.supplyWires,...g.returnWires]){
+            wireCurrents[w.name]=(wireCurrents[w.name]||0)+g.current;
         }
     }
 }
 
 function calculateGroupDrops(){
-    const p = getParams();
+    const p=getParams();
     for(const g of circuitGroups){
-        g.supplyDrop = g.supplyWires.reduce((s,w)=>s+calcDrop(w.lengthMM,getCSA(w),wireCurrents[w.name]||g.current,p.resistivity),0);
-        g.returnDrop = g.returnWires.reduce((s,w)=>s+calcDrop(w.lengthMM,getCSA(w),wireCurrents[w.name]||g.current,p.resistivity),0);
-        g.totalDrop = g.supplyDrop + g.returnDrop;
-        g.pct = (g.totalDrop / p.voltage) * 100;
+        // For this group's voltage drop, use the wire currents from active scenario
+        g.supplyDrop=g.supplyWires.reduce((s,w)=>s+calcDrop(w.lengthMM,getCSA(w),wireCurrents[w.name]||0,p.resistivity),0);
+        g.returnDrop=g.returnWires.reduce((s,w)=>s+calcDrop(w.lengthMM,getCSA(w),wireCurrents[w.name]||0,p.resistivity),0);
+        g.totalDrop=g.supplyDrop+g.returnDrop;
+        g.pct=(g.totalDrop/p.voltage)*100;
     }
     circuitGroups.sort((a,b)=>b.totalDrop-a.totalDrop);
 }
@@ -511,16 +525,28 @@ function renderDrawing(){
         wireRoutes[w.name]=found||[];
     }
 
-    // Highlighted branches for active group
+    // Highlighted branches for active group OR hovered connector
     const hlBranches=new Set(),hlConns=new Set();
-    let hlWireNames=[];
     if(activeGroup!==null&&circuitGroups[activeGroup]){
-        hlWireNames=circuitGroups[activeGroup].allWireNames;
-        for(const wn of hlWireNames){if(wireRoutes[wn])for(const br of wireRoutes[wn])hlBranches.add(br);
+        const wns=circuitGroups[activeGroup].allWireNames;
+        for(const wn of wns){if(wireRoutes[wn])for(const br of wireRoutes[wn])hlBranches.add(br);
             const w=nwfData.wires.find(w2=>w2.name===wn);if(w){if(w.from)hlConns.add(w.from.conn);if(w.to)hlConns.add(w.to.conn);}}
     }
+    // Connector hover highlight
+    if(highlightedConn){
+        hlConns.add(highlightedConn);
+        // Highlight all wires connected to this connector
+        for(const w of nwfData.wires){
+            if((w.from&&w.from.conn===highlightedConn)||(w.to&&w.to.conn===highlightedConn)){
+                if(wireRoutes[w.name])for(const br of wireRoutes[w.name])hlBranches.add(br);
+                if(w.from)hlConns.add(w.from.conn);
+                if(w.to)hlConns.add(w.to.conn);
+            }
+        }
+    }
+    const hasHighlight = activeGroup!==null || highlightedConn;
 
-    // Worst drop per branch for heat-map coloring
+    // Worst drop per branch
     const branchWorstPct=new Map();
     for(const w of nwfData.wires){
         const route=wireRoutes[w.name]||[];
@@ -533,46 +559,37 @@ function renderDrawing(){
     let html=`<g id="svgRoot" transform="translate(${svgTransform.x},${svgTransform.y}) scale(${svgTransform.scale})">`;
     const bc=isDark?'#444':'#ccc';
 
-    // Branches
     for(const br of dsiData.branches){
         const pts=[br.fromPos,...br.waypoints,br.toPos];
         const ptStr=pts.map(p2=>`${p2.x},${p2.y}`).join(' ');
         const isHL=hlBranches.has(br);
         const worstPct=branchWorstPct.get(br)||0;
         let color=bc,width=3,opacity=.5;
-        if(activeGroup!==null){
+        if(hasHighlight){
             if(isHL){
                 color=worstPct>p.maxDropPct?'#ef4444':worstPct>p.maxDropPct*.7?'#f59e0b':'#22c55e';
                 width=5;opacity=1;
             }else{opacity=.15;}
         }else{
-            // Heat map mode when no group selected
-            if(worstPct>0){
-                const t=Math.min(worstPct/p.maxDropPct,1.5);
-                color=t>1?'#ef4444':t>.7?'#f59e0b':isDark?'#555':'#bbb';
-                opacity=.4+t*.4;width=2+t*2;
-            }
+            if(worstPct>0){const t=Math.min(worstPct/p.maxDropPct,1.5);color=t>1?'#ef4444':t>.7?'#f59e0b':isDark?'#555':'#bbb';opacity=.4+t*.4;width=2+t*2;}
         }
         html+=`<polyline points="${ptStr}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round" opacity="${opacity}" />`;
-        if(isHL&&br.bundle){const mid=pts[Math.floor(pts.length/2)];
-            // Show current on highlighted branch
+        if(isHL&&br.bundle){
+            const mid=pts[Math.floor(pts.length/2)];
             const branchWires=nwfData.wires.filter(w=>(wireRoutes[w.name]||[]).includes(br));
             const totalCur=branchWires.reduce((s,w)=>Math.max(s,wireCurrents[w.name]||0),0);
-            html+=`<text x="${mid.x}" y="${mid.y-4}" text-anchor="middle" font-size="3.2" fill="${color}" font-weight="600">${totalCur.toFixed(1)}A</text>`;
+            if(totalCur>0)html+=`<text x="${mid.x}" y="${mid.y-4}" text-anchor="middle" font-size="3.2" fill="${color}" font-weight="600">${totalCur.toFixed(1)}A</text>`;
         }
     }
 
-    // Nodes
     for(const[name,pos]of Object.entries(dsiData.nodePos)){
         if(name.match(/^(X-|SP-)/))continue;
-        html+=`<circle cx="${pos.x}" cy="${pos.y}" r="1.2" fill="${isDark?'#555':'#aaa'}" opacity="${activeGroup!==null?.15:.5}" />`;
+        html+=`<circle cx="${pos.x}" cy="${pos.y}" r="1.2" fill="${isDark?'#555':'#aaa'}" opacity="${hasHighlight?.15:.5}" />`;
     }
 
-    // Connectors & Splices
     for(const[name,info]of Object.entries(dsiData.connectorNodes)){
         const pos=info.pos,isSplice=name.startsWith('SP-'),isHL=hlConns.has(name);
-        const baseOp=activeGroup!==null&&!isHL?.2:1;
-        const connDesc=(nwfData.connectors[name]?.params?.DESCRIPTION||'').replace(/"/g,'').toUpperCase();
+        const baseOp=hasHighlight&&!isHL?.2:1;
         const cfg=connConfig[name];
         const roleColor=cfg?{power:'#dc2626',ground:'#16a34a',load:'#2563eb',signal:'#d97706',passthrough:isDark?'#666':'#999'}[cfg.role]:(isDark?'#666':'#999');
 
@@ -580,10 +597,15 @@ function renderDrawing(){
             html+=`<circle cx="${pos.x}" cy="${pos.y}" r="2.5" fill="${isHL?'#f59e0b':isDark?'#444':'#bbb'}" stroke="${isDark?'#777':'#888'}" stroke-width=".5" opacity="${baseOp}" />`;
             html+=`<text x="${pos.x}" y="${pos.y+5.5}" text-anchor="middle" font-size="2.8" fill="${isDark?'#999':'#777'}" opacity="${baseOp}">${name}</text>`;
         }else{
-            const w2=16,h2=9;
-            html+=`<rect x="${pos.x-w2/2}" y="${pos.y-h2/2}" width="${w2}" height="${h2}" rx="2" fill="${isHL?(isDark?'#1e3a5f':'#dbeafe'):(isDark?'#252525':'#fff')}" stroke="${isHL?'#3b82f6':roleColor}" stroke-width="${isHL?1.2:.7}" opacity="${baseOp}" />`;
-            html+=`<text x="${pos.x}" y="${pos.y+.5}" text-anchor="middle" font-size="3" fill="${isDark?'#ddd':'#333'}" font-weight="600" opacity="${baseOp}" dominant-baseline="middle">${name}</text>`;
-            // Role indicator
+            const isHover=highlightedConn===name;
+            const w2=isHover?20:16, h2=isHover?11:9;
+            const stroke=isHover?'#f59e0b':isHL?'#3b82f6':roleColor;
+            const sw=isHover?2:isHL?1.2:.7;
+            const fill=isHover?(isDark?'#4a3000':'#fff3cd'):isHL?(isDark?'#1e3a5f':'#dbeafe'):(isDark?'#252525':'#fff');
+            const connOp=isHover?1:baseOp;
+            if(isHover) html+=`<rect x="${pos.x-w2/2-2}" y="${pos.y-h2/2-2}" width="${w2+4}" height="${h2+4}" rx="4" fill="none" stroke="#f59e0b" stroke-width="1" opacity=".5" stroke-dasharray="2,2"><animate attributeName="stroke-dashoffset" from="0" to="8" dur="1s" repeatCount="indefinite"/></rect>`;
+            html+=`<rect x="${pos.x-w2/2}" y="${pos.y-h2/2}" width="${w2}" height="${h2}" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" opacity="${connOp}" />`;
+            html+=`<text x="${pos.x}" y="${pos.y+.5}" text-anchor="middle" font-size="${isHover?3.5:3}" fill="${isHover?'#f59e0b':isDark?'#ddd':'#333'}" font-weight="600" opacity="${connOp}" dominant-baseline="middle">${name}</text>`;
             const roleLabel={power:'PWR',ground:'GND',load:'LOAD',signal:'SIG',passthrough:''}[cfg?.role||'']||'';
             if(roleLabel)html+=`<text x="${pos.x}" y="${pos.y+h2/2+3.5}" text-anchor="middle" font-size="2.3" fill="${roleColor}" opacity="${baseOp}" font-weight="600">${roleLabel}${cfg&&cfg.current>0?' '+cfg.current+'A':''}</text>`;
         }
@@ -591,9 +613,10 @@ function renderDrawing(){
 
     html+='</g>';
     svg.innerHTML=html;
-    document.getElementById('svgLegend').innerHTML=activeGroup!==null
-        ?`Showing: <strong>${circuitGroups[activeGroup]?.name||''}</strong> (${circuitGroups[activeGroup]?.current||0}A) | Click to deselect`
-        :'Heat map: wire voltage drop | Click a circuit group to isolate';
+    const legend=document.getElementById('svgLegend');
+    if(highlightedConn) legend.innerHTML=`Highlighting: <strong>${highlightedConn}</strong>`;
+    else if(activeGroup!==null) legend.innerHTML=`Showing: <strong>${circuitGroups[activeGroup]?.name||''}</strong> | Click to deselect`;
+    else legend.innerHTML='Heat map: wire voltage drop | Click a circuit group to isolate';
 }
 
 // Pan/Zoom
@@ -618,6 +641,7 @@ function renderAll(){
     const p=getParams();
     renderHarnessInfo();
     renderLoadConfig();
+    renderScenario();
     renderSpools();
     renderConnectors();
     renderWires(p);
@@ -639,11 +663,10 @@ function renderLoadConfig(){
         const cfg=connConfig[c.name]||{role:'passthrough',current:0};
         const desc=(c.params.DESCRIPTION||'').replace(/"/g,'');
         const pins=c.pins.map(p=>p.name).join(', ');
-        const roleClass='role-'+cfg.role;
-        return `<tr>
+        return `<tr data-conn="${c.name}" onmouseenter="onConnHover('${c.name}')" onmouseleave="onConnHover(null)">
             <td><strong>${c.name}</strong></td>
             <td style="font-size:.75rem;max-width:200px;overflow:hidden;text-overflow:ellipsis">${desc}</td>
-            <td><select class="${roleClass}" onchange="setRole('${c.name}',this.value)">
+            <td><select class="role-${cfg.role}" onchange="setRole('${c.name}',this.value)" onclick="event.stopPropagation()">
                 <option value="power" ${cfg.role==='power'?'selected':''}>Power Source</option>
                 <option value="ground" ${cfg.role==='ground'?'selected':''}>Ground Return</option>
                 <option value="load" ${cfg.role==='load'?'selected':''}>Load</option>
@@ -651,15 +674,89 @@ function renderLoadConfig(){
                 <option value="passthrough" ${cfg.role==='passthrough'?'selected':''}>Pass-through</option>
             </select></td>
             <td>${cfg.role==='load'||cfg.role==='signal'
-                ?`<input type="number" value="${cfg.current}" min="0" step="0.1" onchange="setCurrent('${c.name}',this.value)" />`
+                ?`<input type="number" value="${cfg.current}" min="0" step="0.1" onchange="setCurrent('${c.name}',this.value)" onclick="event.stopPropagation()" />`
                 :`<span style="color:var(--text-muted);font-size:.75rem">${cfg.role==='power'||cfg.role==='ground'?'auto':'—'}</span>`}</td>
             <td style="font-size:.75rem">${pins}</td>
         </tr>`;
     }).join('');
 }
 
+function onConnHover(connName){
+    highlightedConn=connName;
+    if(dsiData&&nwfData){
+        renderDrawing();
+        // Scroll drawing into view if hovering a connector
+        if(connName){
+            const el=document.getElementById('drawingLayout');
+            if(el&&!isElementInViewport(el))el.scrollIntoView({behavior:'smooth',block:'nearest'});
+        }
+    }
+}
+function isElementInViewport(el){
+    const r=el.getBoundingClientRect();
+    return r.top<window.innerHeight&&r.bottom>0;
+}
+
 function setRole(conn,role){connConfig[conn].role=role;connConfig[conn].current=role==='load'?5:role==='signal'?0.15:0;activeGroup=null;renderAll();}
 function setCurrent(conn,val){connConfig[conn].current=parseFloat(val)||0;activeGroup=null;renderAll();}
+
+function renderScenario(){
+    const relays=[...new Set(circuitGroups.map(g=>g.relayGroup).filter(r=>r!=='none'))];
+    const el=document.getElementById('scenarioToggles');
+    const card=document.getElementById('scenarioCard');
+    if(!relays.length){card.classList.add('hidden');return;}
+    card.classList.remove('hidden');
+
+    // Get relay descriptions
+    const relayDescs={};
+    for(const r of relays){
+        // Find circuits that go through this relay to determine what it switches
+        const relayCircuits=circuitGroups.filter(g=>g.relayGroup===r&&connConfig[g.connName]?.role==='load');
+        const circNames=relayCircuits.map(g=>g.name);
+        relayDescs[r]=circNames.length?circNames.join(', '):'';
+    }
+
+    let html=relays.map(r=>{
+        const on=activeRelays[r]!==false;
+        return`<label class="scenario-toggle ${on?'on':''}">
+            <input type="checkbox" ${on?'checked':''} onchange="toggleRelay('${r}',this.checked)" />
+            <span><strong>${r}</strong></span>
+            <span style="font-size:.72rem;color:var(--text-muted)">${relayDescs[r]}</span>
+        </label>`;
+    }).join('');
+
+    // Preset buttons
+    html+=`<span style="margin-left:8px;font-size:.72rem;color:var(--text-muted)">Presets:</span>`;
+    for(const r of relays){
+        html+=`<button class="scenario-preset" onclick="setScenario('${r}')">${r} only</button>`;
+    }
+    html+=`<button class="scenario-preset" onclick="setScenario('all')">All On</button>`;
+
+    el.innerHTML=html;
+}
+
+function toggleRelay(relay,on){
+    activeRelays[relay]=on;
+    recalcFromScenario();
+}
+
+function setScenario(which){
+    const relays=[...new Set(circuitGroups.map(g=>g.relayGroup).filter(r=>r!=='none'))];
+    if(which==='all'){for(const r of relays)activeRelays[r]=true;}
+    else{for(const r of relays)activeRelays[r]=(r===which);}
+    recalcFromScenario();
+}
+
+function recalcFromScenario(){
+    calculateWireCurrents();
+    calculateGroupDrops();
+    const p=getParams();
+    renderScenario();
+    renderWires(p);
+    renderGroups(p);
+    renderSummary(p);
+    if(dsiData)renderDrawing();
+}
 
 function renderSpools(){
     document.getElementById('spoolBody').innerHTML=Object.values(nwfData.spools).map(s=>{const p2=s.params;return`<tr><td>${p2.PART_NO||s.name}</td><td>${p2.WIRE_MATERIAL||''}</td><td>${p2.WIRE_SIZE||''}</td><td class="num">${p2.WIRE_CSA||''}</td><td class="num">${p2.THICKNESS||''}</td><td>${swatchHTML(p2.COLOR)}</td></tr>`;}).join('');
@@ -680,7 +777,6 @@ function renderWires(p){
 function renderPaths(p){
     const adj=buildCircuitGraph();
     const terminals=Object.keys(adj).filter(isTerminal);
-    // Just show direct terminal-to-terminal connections for reference
     const directPaths=[];
     for(const start of terminals){
         for(const{node:next,wire}of(adj[start]||[])){
@@ -694,37 +790,39 @@ function renderPaths(p){
         }
     }
     directPaths.sort((a,b)=>b.vd-a.vd);
-    const el=document.getElementById('pathsList');
-    el.innerHTML=directPaths.map(dp=>{
+    document.getElementById('pathsList').innerHTML=directPaths.map(dp=>{
         const st=statusOf(dp.pct,p.maxDropPct);
         return`<div style="padding:5px 0;border-bottom:1px solid var(--border);font-size:.8rem">
             <span>${dp.from} &harr; ${dp.to}</span>
             <span class="badge badge-${st}" style="margin-left:6px">${dp.vd.toFixed(4)}V (${dp.pct.toFixed(2)}%)</span>
             <span style="font-size:.72rem;color:var(--text-muted);margin-left:6px">${dp.wire.name} @ ${(wireCurrents[dp.wire.name]||0).toFixed(1)}A</span>
         </div>`;
-    }).join('')||'<div style="color:var(--text-muted);padding:8px;font-size:.82rem">No direct paths.</div>';
+    }).join('')||'<div style="color:var(--text-muted);padding:8px;font-size:.82rem">No paths.</div>';
 }
 
 function renderGroups(p){
     const el=document.getElementById('groupsList');
-    if(!circuitGroups.length){el.innerHTML='<div style="color:var(--text-muted);font-size:.8rem;padding:8px">No load circuits detected. Set connector roles above.</div>';return;}
+    if(!circuitGroups.length){el.innerHTML='<div style="color:var(--text-muted);font-size:.8rem;padding:8px">No load circuits detected.</div>';return;}
 
     el.innerHTML=circuitGroups.map((g,idx)=>{
         const st=statusOf(g.pct,p.maxDropPct);
         const isActive=activeGroup===idx;
+        const relayActive=g.relayGroup==='none'||activeRelays[g.relayGroup]!==false;
+        const dimmed=!relayActive;
 
-        function wireRow(w,label){
+        function wireRow(w){
             const cur=wireCurrents[w.name]||0;
             const vd=calcDrop(w.lengthMM,getCSA(w),cur,p.resistivity);
             return`<div class="group-wire"><span>${swatchHTML(getColor(w))} ${w.name}</span><span>${cur.toFixed(1)}A &rarr; ${vd.toFixed(4)}V</span></div>`;
         }
 
         let bodyHTML='';
-        if(g.supplyWires.length){bodyHTML+=`<div class="group-section-label">Supply (${g.supplyDrop.toFixed(4)}V)</div>`+g.supplyWires.map(w=>wireRow(w)).join('');}
-        if(g.returnWires.length){bodyHTML+=`<div class="group-section-label">Return (${g.returnDrop.toFixed(4)}V)</div>`+g.returnWires.map(w=>wireRow(w)).join('');}
-        bodyHTML+=`<div class="group-total"><span>Round Trip @ ${g.current}A load</span><span>${g.totalDrop.toFixed(4)}V (${g.pct.toFixed(2)}%)</span></div>`;
+        if(g.relayGroup!=='none')bodyHTML+=`<div style="font-size:.68rem;margin-bottom:2px"><span class="badge ${relayActive?'badge-ok':'badge-warn'}">${g.relayGroup} ${relayActive?'ON':'OFF'}</span></div>`;
+        if(g.supplyWires.length)bodyHTML+=`<div class="group-section-label">Supply (${g.supplyDrop.toFixed(4)}V)</div>`+g.supplyWires.map(wireRow).join('');
+        if(g.returnWires.length)bodyHTML+=`<div class="group-section-label">Return (${g.returnDrop.toFixed(4)}V)</div>`+g.returnWires.map(wireRow).join('');
+        bodyHTML+=`<div class="group-total"><span>Round Trip @ ${g.current}A</span><span>${g.totalDrop.toFixed(4)}V (${g.pct.toFixed(2)}%)</span></div>`;
 
-        return`<div class="group-item ${isActive?'active':''}" onclick="toggleGroup(${idx})">
+        return`<div class="group-item ${isActive?'active':''}" style="${dimmed?'opacity:.4':''}" onclick="toggleGroup(${idx})">
             <div class="group-header"><span>${g.name}</span><span class="badge badge-${st}">${g.totalDrop.toFixed(3)}V &bull; ${g.pct.toFixed(1)}%</span></div>
             <div class="group-body"><div style="font-size:.7rem;color:var(--text-muted);margin-bottom:3px">${g.desc}</div>${bodyHTML}</div>
         </div>`;
@@ -735,27 +833,29 @@ function toggleGroup(idx){activeGroup=activeGroup===idx?null:idx;const p=getPara
 
 function renderSummary(p){
     const el=document.getElementById('summarySection');
-    const worst=circuitGroups[0];
+    // Only consider active circuits for summary
+    const activeCircuits=circuitGroups.filter(g=>g.relayGroup==='none'||activeRelays[g.relayGroup]!==false);
+    const worst=activeCircuits[0];
     if(!worst){el.innerHTML='';return;}
     const st=statusOf(worst.pct,p.maxDropPct);
     const bgMap={fail:'var(--danger-light)',warn:'var(--warn-light)',ok:'var(--success-light)'};
     const fgMap={fail:'var(--danger)',warn:'var(--warn)',ok:'var(--success)'};
-    const passCt=circuitGroups.filter(g=>g.pct<=p.maxDropPct).length;
-    const failCt=circuitGroups.filter(g=>g.pct>p.maxDropPct).length;
+    const passCt=activeCircuits.filter(g=>g.pct<=p.maxDropPct).length;
+    const failCt=activeCircuits.filter(g=>g.pct>p.maxDropPct).length;
     const totalLen=nwfData.wires.reduce((s,w)=>s+w.lengthMM,0);
-    // Find wire with highest current
     let maxCurWire='',maxCur=0;
     for(const[wn,c]of Object.entries(wireCurrents)){if(c>maxCur){maxCur=c;maxCurWire=wn;}}
+    const activeRelayCount=Object.values(activeRelays).filter(v=>v).length;
+    const totalRelays=[...new Set(circuitGroups.map(g=>g.relayGroup).filter(r=>r!=='none'))].length;
 
     el.innerHTML=`
         <div class="summary-item" style="background:${bgMap[st]};color:${fgMap[st]}"><div class="label">Worst Circuit Drop</div><div class="value">${worst.totalDrop.toFixed(3)}V</div><div class="sub">${worst.pct.toFixed(2)}% &bull; ${worst.name}</div></div>
-        <div class="summary-item" style="background:var(--accent-light);color:var(--accent)"><div class="label">Circuits</div><div class="value">${circuitGroups.length}</div><div class="sub">${passCt} pass, ${failCt} fail</div></div>
+        <div class="summary-item" style="background:var(--accent-light);color:var(--accent)"><div class="label">Active Circuits</div><div class="value">${activeCircuits.length}</div><div class="sub">${passCt} pass, ${failCt} fail</div></div>
         <div class="summary-item" style="background:var(--card);border:1px solid var(--border)"><div class="label">Max Wire Current</div><div class="value">${maxCur.toFixed(1)}A</div><div class="sub">${maxCurWire}</div></div>
-        <div class="summary-item" style="background:var(--card);border:1px solid var(--border)"><div class="label">Harness</div><div class="value">${nwfData.wires.length}</div><div class="sub">wires &bull; ${(totalLen/1000).toFixed(1)}m total</div></div>
+        <div class="summary-item" style="background:var(--card);border:1px solid var(--border)"><div class="label">Scenario</div><div class="value">${activeRelayCount}/${totalRelays}</div><div class="sub">relays active</div></div>
     `;
 }
 
-// Recalc on parameter change
 document.querySelectorAll('#voltage,#material,#maxDrop').forEach(el=>{
     el.addEventListener('input',()=>{if(nwfData){activeGroup=null;renderAll();}});
     el.addEventListener('change',()=>{if(nwfData){activeGroup=null;renderAll();}});
