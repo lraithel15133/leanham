@@ -1,263 +1,820 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta charset="UTF-8" />
-        <title>Voltage Drop Calculator</title>
-        <style>
-            :root {
-                --bg: #f7f7f7;
-                --card: #ffffff;
-                --text: #1e1e1e;
-                --border: #d0d0d0;
-                --accent: #3b82f6;
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8" />
+    <title>NWF Voltage Drop Calculator</title>
+    <style>
+        :root {
+            --bg: #f5f5f5;
+            --card: #ffffff;
+            --text: #1a1a1a;
+            --text-muted: #666;
+            --border: #ddd;
+            --accent: #2563eb;
+            --accent-light: #dbeafe;
+            --danger: #dc2626;
+            --danger-light: #fee2e2;
+            --warn: #d97706;
+            --warn-light: #fef3c7;
+            --success: #16a34a;
+            --success-light: #dcfce7;
+            --table-stripe: #f9fafb;
+            --hover: #f0f4ff;
+        }
+        [data-theme="dark"] {
+            --bg: #0f0f0f;
+            --card: #1a1a1a;
+            --text: #e5e5e5;
+            --text-muted: #999;
+            --border: #333;
+            --accent: #3b82f6;
+            --accent-light: #1e3a5f;
+            --danger: #ef4444;
+            --danger-light: #451a1a;
+            --warn: #f59e0b;
+            --warn-light: #451a03;
+            --success: #22c55e;
+            --success-light: #14332a;
+            --table-stripe: #1f1f1f;
+            --hover: #1e2a3a;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg); color: var(--text);
+            margin: 0; padding: 16px;
+            line-height: 1.5;
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+        h1 { font-size: 1.5rem; margin: 0; }
+        h2 { font-size: 1.15rem; margin: 0 0 10px; }
+        h3 { font-size: 1rem; margin: 0 0 6px; }
+
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px; flex-wrap: wrap; gap: 8px;
+        }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+
+        .card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 8px; padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .toggle {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 0.85rem; cursor: pointer; user-select: none;
+        }
+
+        /* Upload area */
+        .upload-zone {
+            border: 2px dashed var(--border); border-radius: 8px;
+            padding: 40px 20px; text-align: center; cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .upload-zone:hover, .upload-zone.drag-over {
+            border-color: var(--accent); background: var(--accent-light);
+        }
+        .upload-zone input { display: none; }
+        .upload-icon { font-size: 2rem; margin-bottom: 8px; }
+        .upload-text { font-size: 0.95rem; color: var(--text-muted); }
+        .upload-btn {
+            display: inline-block; margin-top: 10px;
+            padding: 8px 20px; background: var(--accent); color: #fff;
+            border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;
+        }
+
+        /* Inputs row */
+        .inputs-row {
+            display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;
+        }
+        .field { display: flex; flex-direction: column; gap: 3px; }
+        .field label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+        .field input, .field select {
+            padding: 6px 10px; border: 1px solid var(--border);
+            border-radius: 5px; background: var(--card); color: var(--text);
+            font-size: 0.95rem; width: 130px;
+        }
+
+        /* Tables */
+        .table-wrap { overflow-x: auto; }
+        table {
+            width: 100%; border-collapse: collapse; font-size: 0.85rem;
+        }
+        th {
+            text-align: left; padding: 8px 10px;
+            border-bottom: 2px solid var(--border);
+            font-size: 0.75rem; text-transform: uppercase;
+            letter-spacing: 0.04em; color: var(--text-muted);
+            white-space: nowrap; position: sticky; top: 0;
+            background: var(--card);
+        }
+        td {
+            padding: 6px 10px; border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        tr:nth-child(even) td { background: var(--table-stripe); }
+        tr:hover td { background: var(--hover); }
+        td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+        /* Badges */
+        .badge {
+            display: inline-block; padding: 2px 8px; border-radius: 4px;
+            font-size: 0.75rem; font-weight: 600;
+        }
+        .badge-ok { background: var(--success-light); color: var(--success); }
+        .badge-warn { background: var(--warn-light); color: var(--warn); }
+        .badge-fail { background: var(--danger-light); color: var(--danger); }
+
+        /* Summary cards */
+        .summary-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .summary-item {
+            padding: 14px; border-radius: 8px; text-align: center;
+        }
+        .summary-item .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8; }
+        .summary-item .value { font-size: 1.6rem; font-weight: 700; margin-top: 2px; }
+        .summary-item .sub { font-size: 0.8rem; opacity: 0.7; margin-top: 2px; }
+
+        /* Harness info */
+        .info-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 6px 16px; font-size: 0.85rem;
+        }
+        .info-label { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; }
+
+        /* Color swatch */
+        .color-swatch {
+            display: inline-block; width: 14px; height: 14px;
+            border-radius: 3px; border: 1px solid var(--border);
+            vertical-align: middle; margin-right: 4px;
+        }
+
+        /* Path list */
+        .path-item {
+            padding: 10px 12px; border: 1px solid var(--border);
+            border-radius: 6px; margin-bottom: 8px;
+            cursor: pointer; transition: background 0.15s;
+        }
+        .path-item:hover { background: var(--hover); }
+        .path-item.worst { border-color: var(--danger); background: var(--danger-light); }
+        .path-header {
+            display: flex; justify-content: space-between; align-items: center;
+            font-weight: 600; font-size: 0.9rem;
+        }
+        .path-wires {
+            font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;
+        }
+        .path-arrow { color: var(--text-muted); margin: 0 3px; }
+
+        .hidden { display: none; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 0; margin-bottom: -1px; position: relative; z-index: 1; }
+        .tab {
+            padding: 8px 16px; cursor: pointer; font-size: 0.85rem; font-weight: 500;
+            border: 1px solid transparent; border-bottom: none;
+            border-radius: 6px 6px 0 0; color: var(--text-muted);
+            background: transparent; transition: all 0.15s;
+        }
+        .tab:hover { color: var(--text); }
+        .tab.active {
+            background: var(--card); color: var(--text);
+            border-color: var(--border);
+        }
+        .tab-content { border-top: 1px solid var(--border); }
+
+        .file-loaded { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+        .file-loaded .name { font-weight: 600; }
+        .clear-btn {
+            padding: 3px 10px; font-size: 0.8rem; border: 1px solid var(--border);
+            border-radius: 4px; background: var(--card); color: var(--text);
+            cursor: pointer;
+        }
+        .clear-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+        @media (max-width: 700px) {
+            body { padding: 8px; }
+            .card { padding: 12px; }
+            .field input, .field select { width: 100px; }
+            .summary-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+<div class="container">
+    <div class="header">
+        <div class="header-left">
+            <h1>NWF Voltage Drop Calculator</h1>
+        </div>
+        <label class="toggle">
+            <input type="checkbox" id="darkToggle" />
+            Dark
+        </label>
+    </div>
+
+    <!-- Upload Section -->
+    <div id="uploadSection">
+        <div class="upload-zone" id="dropZone">
+            <div class="upload-icon">&#128268;</div>
+            <div>Drop an Arcadia <strong>.nwf</strong> file here</div>
+            <div class="upload-text">or click to browse</div>
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Choose File</button>
+            <input type="file" id="fileInput" accept=".nwf,.txt" />
+        </div>
+    </div>
+
+    <!-- Loaded file indicator -->
+    <div id="fileInfo" class="hidden" style="margin-bottom:12px">
+        <div class="file-loaded">
+            <span class="name" id="fileName"></span>
+            <button class="clear-btn" onclick="clearFile()">Clear</button>
+        </div>
+    </div>
+
+    <!-- Results Section (hidden until file loaded) -->
+    <div id="resultsSection" class="hidden">
+
+        <!-- Harness Info -->
+        <div class="card" id="harnessCard">
+            <h2>Harness Information</h2>
+            <div class="info-grid" id="harnessInfo"></div>
+        </div>
+
+        <!-- Inputs -->
+        <div class="card">
+            <h2>Parameters</h2>
+            <div class="inputs-row">
+                <div class="field">
+                    <label>System Voltage (V)</label>
+                    <input id="voltage" type="number" step="0.1" min="0" value="13.5" />
+                </div>
+                <div class="field">
+                    <label>Circuit Current (A)</label>
+                    <input id="current" type="number" step="0.1" min="0" value="10" />
+                </div>
+                <div class="field">
+                    <label>Conductor</label>
+                    <select id="material">
+                        <option value="0.01724">Copper (20&deg;C)</option>
+                        <option value="0.02168">Copper (80&deg;C)</option>
+                        <option value="0.02827">Aluminium (20&deg;C)</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Max Drop %</label>
+                    <input id="maxDrop" type="number" step="0.5" min="0" value="3" style="width:80px" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div id="summarySection" class="summary-grid" style="margin-bottom:12px"></div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" data-tab="circuits" onclick="switchTab('circuits')">Circuit Paths</div>
+            <div class="tab" data-tab="wires" onclick="switchTab('wires')">All Wires</div>
+            <div class="tab" data-tab="spools" onclick="switchTab('spools')">Wire Spools</div>
+            <div class="tab" data-tab="connectors" onclick="switchTab('connectors')">Connectors</div>
+        </div>
+
+        <!-- Circuit Paths Tab -->
+        <div class="card tab-content" id="tab-circuits">
+            <h3>Traced Circuit Paths <span style="font-weight:normal;font-size:0.8rem;color:var(--text-muted)">(source &rarr; load, sorted by voltage drop)</span></h3>
+            <div id="pathsList"></div>
+        </div>
+
+        <!-- Wires Tab -->
+        <div class="card tab-content hidden" id="tab-wires">
+            <h3>Wire Segments</h3>
+            <div class="table-wrap">
+                <table id="wireTable">
+                    <thead><tr>
+                        <th>Wire Name</th><th>From</th><th>To</th>
+                        <th>Length (mm)</th><th>CSA (mm&sup2;)</th><th>Color</th>
+                        <th>Spool</th><th>V Drop (V)</th><th>V Drop %</th><th>Status</th>
+                    </tr></thead>
+                    <tbody id="wireBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Spools Tab -->
+        <div class="card tab-content hidden" id="tab-spools">
+            <h3>Wire Spools</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Part No</th><th>Material</th><th>AWG Size</th>
+                        <th>CSA (mm&sup2;)</th><th>OD (mm)</th><th>Color</th>
+                    </tr></thead>
+                    <tbody id="spoolBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Connectors Tab -->
+        <div class="card tab-content hidden" id="tab-connectors">
+            <h3>Connectors</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Ref Des</th><th>Model</th><th>Description</th><th>Pins</th>
+                    </tr></thead>
+                    <tbody id="connBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ─── Color Map ──────────────────────────────────────────
+const COLOR_MAP = {
+    'BLACK':'#222','RED':'#d32f2f','BLUE':'#1565c0','GREEN':'#2e7d32',
+    'YELLOW':'#f9a825','WHITE':'#eee','ORANGE':'#ef6c00','BROWN':'#5d4037',
+    'PURPLE':'#7b1fa2','PINK':'#e91e63','GRAY':'#757575','GREY':'#757575',
+    'VIOLET':'#7b1fa2','TAN':'#d2b48c',
+};
+function colorCSS(name) {
+    if (!name) return 'transparent';
+    const parts = name.split('/');
+    if (parts.length === 1) return COLOR_MAP[parts[0].toUpperCase()] || '#999';
+    // striped for dual colors
+    const c1 = COLOR_MAP[parts[0].toUpperCase()] || '#999';
+    const c2 = COLOR_MAP[parts[1].toUpperCase()] || '#999';
+    return `linear-gradient(135deg, ${c1} 50%, ${c2} 50%)`;
+}
+function swatchHTML(color) {
+    const bg = colorCSS(color);
+    const style = bg.startsWith('linear') ? `background:${bg}` : `background-color:${bg}`;
+    return `<span class="color-swatch" style="${style}"></span>${color || ''}`;
+}
+
+// ─── Dark Mode ──────────────────────────────────────────
+const darkToggle = document.getElementById('darkToggle');
+const saved = localStorage.getItem('theme');
+if (saved) { document.body.dataset.theme = saved; darkToggle.checked = saved === 'dark'; }
+darkToggle.addEventListener('change', e => {
+    const t = e.target.checked ? 'dark' : 'light';
+    document.body.dataset.theme = t; localStorage.setItem('theme', t);
+});
+
+// ─── Tab Switching ──────────────────────────────────────
+function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.toggle('hidden', t.id !== 'tab-' + name));
+}
+
+// ─── File Upload ────────────────────────────────────────
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+function clearFile() {
+    fileInput.value = '';
+    document.getElementById('uploadSection').classList.remove('hidden');
+    document.getElementById('fileInfo').classList.add('hidden');
+    document.getElementById('resultsSection').classList.add('hidden');
+    parsedData = null;
+}
+
+let parsedData = null;
+
+function handleFile(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+        const text = e.target.result;
+        parsedData = parseNWF(text);
+        document.getElementById('uploadSection').classList.add('hidden');
+        document.getElementById('fileInfo').classList.remove('hidden');
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('resultsSection').classList.remove('hidden');
+        renderAll();
+    };
+    reader.readAsText(file);
+}
+
+// ─── NWF Parser ─────────────────────────────────────────
+function parseNWF(text) {
+    const lines = text.split(/\r?\n/);
+    const header = {};
+    const spools = {};
+    const connectors = {};
+    const wires = [];
+
+    // Parse header comments
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('!')) continue;
+        const m = trimmed.match(/^!\s+(Filename|Harness PartNum|Description_2|Harness Rev|Harness ID|Modified By|Created Date|Modified Date|Extract Date)\s*:\s*(.*)$/i);
+        if (m) header[m[1].trim()] = m[2].trim();
+    }
+
+    let i = 0;
+    while (i < lines.length) {
+        const line = lines[i].trim();
+
+        // Parse Wire Spools
+        if (line.match(/^NEW\s+WIRE_SPOOL\s+/)) {
+            const name = line.replace(/^NEW\s+WIRE_SPOOL\s+/, '').trim();
+            const spool = { name, params: {} };
+            i++;
+            while (i < lines.length) {
+                const l = lines[i].trim();
+                if (l.startsWith('PARAMETER ')) {
+                    const pm = l.match(/^PARAMETER\s+(\S+)\s+(.*)/);
+                    if (pm) spool.params[pm[1]] = pm[2].trim();
+                } else if (l.startsWith('NEW ') || l.startsWith('!====')) {
+                    break;
+                }
+                i++;
             }
-            [data-theme="dark"] {
-                --bg: #121212;
-                --card: #1e1e1e;
-                --text: #e5e5e5;
-                --border: #333;
-                --accent: #3b82f6;
+            spools[name] = spool;
+            continue;
+        }
+
+        // Parse Connectors
+        if (line.match(/^NEW\s+CONNECTOR\s+/)) {
+            const name = line.replace(/^NEW\s+CONNECTOR\s+/, '').trim();
+            const conn = { name, params: {}, pins: [] };
+            i++;
+            let currentPin = null;
+            while (i < lines.length) {
+                const l = lines[i].trim();
+                if (l.startsWith('NEW ') || l.startsWith('!====')) break;
+                if (l.startsWith('PIN ')) {
+                    const pinName = l.replace(/^PIN\s+/, '').trim();
+                    currentPin = { name: pinName, params: {} };
+                    conn.pins.push(currentPin);
+                } else if (l.startsWith('PARAMETER ')) {
+                    const pm = l.match(/^PARAMETER\s+(\S+)\s+(.*)/);
+                    if (pm) {
+                        const val = pm[2].replace(/\s*!.*$/, '').trim();
+                        if (currentPin) currentPin.params[pm[1]] = val;
+                        else conn.params[pm[1]] = val;
+                    }
+                }
+                i++;
+            }
+            connectors[name] = conn;
+            continue;
+        }
+
+        // Parse Wires
+        if (line.match(/^NEW\s+WIRE\s+/)) {
+            const wm = line.match(/^NEW\s+WIRE\s+(\S+)\s+(\S+)/);
+            if (wm) {
+                const wire = { name: wm[1], spool: wm[2], from: null, to: null, lengthMM: 0 };
+                i++;
+                while (i < lines.length) {
+                    const l = lines[i].trim();
+                    if (l.startsWith('NEW ') || l.startsWith('!====')) break;
+                    if (l.startsWith('ATTACH')) {
+                        const am = l.match(/^ATTACH\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/);
+                        if (am) {
+                            wire.from = { conn: am[1], pin: am[2] };
+                            wire.to = { conn: am[3], pin: am[4] };
+                        }
+                    }
+                    if (l.match(/^!\s*WIRE_LENGTH_MM\s+/)) {
+                        const lm = l.match(/WIRE_LENGTH_MM\s+(\d+\.?\d*)/);
+                        if (lm) wire.lengthMM = parseFloat(lm[1]);
+                    }
+                    i++;
+                }
+                wires.push(wire);
+                continue;
+            }
+        }
+
+        i++;
+    }
+
+    return { header, spools, connectors, wires };
+}
+
+// ─── Voltage Drop Calculation ───────────────────────────
+function getCSA(wire) {
+    const spool = parsedData.spools[wire.spool];
+    if (!spool) return 1;
+    return parseFloat(spool.params.WIRE_CSA) || 1;
+}
+
+function getColor(wire) {
+    const spool = parsedData.spools[wire.spool];
+    if (!spool) return '';
+    return spool.params.COLOR || '';
+}
+
+function calcDrop(lengthMM, csaMM2, currentA, resistivity) {
+    const lengthM = lengthMM / 1000;
+    return (currentA * resistivity * lengthM) / csaMM2;
+}
+
+function getParams() {
+    return {
+        voltage: parseFloat(document.getElementById('voltage').value) || 13.5,
+        current: parseFloat(document.getElementById('current').value) || 10,
+        resistivity: parseFloat(document.getElementById('material').value) || 0.01724,
+        maxDropPct: parseFloat(document.getElementById('maxDrop').value) || 3,
+    };
+}
+
+// ─── Graph & Path Finding ───────────────────────────────
+function buildGraph() {
+    // Nodes: "CONN PIN" strings
+    // Edges: wires connecting them
+    // Splice nodes (SP-xxx) are pass-through junctions
+    const adj = {}; // node -> [{ node, wire }]
+
+    function addEdge(a, b, wire) {
+        if (!adj[a]) adj[a] = [];
+        if (!adj[b]) adj[b] = [];
+        adj[a].push({ node: b, wire });
+        adj[b].push({ node: a, wire });
+    }
+
+    for (const w of parsedData.wires) {
+        if (!w.from || !w.to) continue;
+        const fromNode = `${w.from.conn} ${w.from.pin}`;
+        const toNode = `${w.to.conn} ${w.to.pin}`;
+        addEdge(fromNode, toNode, w);
+    }
+
+    return adj;
+}
+
+function isTerminal(nodeStr) {
+    // Terminal = non-splice connector (X-xxx, not SP-xxx)
+    return !nodeStr.startsWith('SP-');
+}
+
+function findAllPaths(adj) {
+    // Find all simple paths between terminal nodes
+    const terminals = Object.keys(adj).filter(isTerminal);
+    const allPaths = [];
+
+    for (const start of terminals) {
+        // DFS from each terminal, collect paths to other terminals
+        const stack = [{ node: start, path: [start], wires: [], visited: new Set([start]) }];
+
+        while (stack.length) {
+            const { node, path, wires, visited } = stack.pop();
+
+            if (node !== start && isTerminal(node)) {
+                // Found a path to another terminal
+                allPaths.push({ from: start, to: node, nodes: [...path], wires: [...wires] });
+                // Don't continue past terminal nodes (they're endpoints)
+                continue;
             }
 
-            body {
-                font-family: system-ui, sans-serif;
-                background: var(--bg);
-                color: var(--text);
-                margin: 0;
-                padding: 16px;
-                min-height: 100vh;
-                box-sizing: border-box;
-            }
-
-            .card {
-                background: var(--card);
-                border: 1px solid var(--border);
-                border-radius: 10px;
-                padding: 15px;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-                transition: background 0.2s, border 0.2s;
-                max-width: 420px;
-                margin: 16px auto;
-            }
-            @media (max-width: 600px) {
-                .card {
-                    max-width: 100%;
-                    margin: 8px 0;
-                    border-radius: 0;
+            const neighbors = adj[node] || [];
+            for (const { node: next, wire } of neighbors) {
+                if (!visited.has(next)) {
+                    const newVisited = new Set(visited);
+                    newVisited.add(next);
+                    stack.push({
+                        node: next,
+                        path: [...path, next],
+                        wires: [...wires, wire],
+                        visited: newVisited,
+                    });
                 }
             }
+        }
+    }
 
-            .row {
-                display: flex;
-                gap: 8px;
-                margin-bottom: 10px;
-                align-items: flex-end;
-            }
+    // Deduplicate (A->B and B->A are same path)
+    const seen = new Set();
+    const unique = [];
+    for (const p of allPaths) {
+        const key = [p.from, p.to].sort().join('|') + '|' + p.wires.map(w => w.name).sort().join(',');
+        if (!seen.has(key)) {
+            seen.add(key);
+            unique.push(p);
+        }
+    }
 
-            .field {
-                flex: 1;
-                display: flex;
-                flex-direction: column;
-                font-size: 13px;
-            }
+    return unique;
+}
 
-            input,
-            select {
-                padding: 5px 6px;
-                border: 1px solid var(--border);
-                border-radius: 5px;
-                background: var(--card);
-                color: var(--text);
-                transition: border 0.2s, background 0.2s;
-            }
+// ─── Rendering ──────────────────────────────────────────
+function renderAll() {
+    const p = getParams();
+    renderHarnessInfo();
+    renderSpools();
+    renderConnectors();
+    renderWires(p);
+    renderPaths(p);
+    renderSummary(p);
+}
 
-            button {
-                padding: 5px 10px;
-                border-radius: 5px;
-                cursor: pointer;
-                border: 1px solid var(--border);
-                background: var(--card);
-                color: var(--text);
-            }
+function renderHarnessInfo() {
+    const h = parsedData.header;
+    const el = document.getElementById('harnessInfo');
+    const fields = [
+        ['Harness PartNum', 'Part Number'],
+        ['Harness Rev', 'Revision'],
+        ['Harness ID', 'Harness ID'],
+        ['Modified By', 'Author'],
+        ['Created Date', 'Created'],
+        ['Modified Date', 'Modified'],
+    ];
+    el.innerHTML = fields.map(([key, label]) =>
+        h[key] ? `<div><div class="info-label">${label}</div><div>${h[key]}</div></div>` : ''
+    ).join('');
+}
 
-            .actions {
-                display: flex;
-                gap: 8px;
-                margin-top: 10px;
-                flex-wrap: wrap;
-                align-items: center;
-            }
+function renderSpools() {
+    const body = document.getElementById('spoolBody');
+    body.innerHTML = Object.values(parsedData.spools).map(s => {
+        const p = s.params;
+        return `<tr>
+            <td>${p.PART_NO || s.name}</td>
+            <td>${p.WIRE_MATERIAL || ''}</td>
+            <td>${p.WIRE_SIZE || ''}</td>
+            <td class="num">${p.WIRE_CSA || ''}</td>
+            <td class="num">${p.THICKNESS || ''}</td>
+            <td>${swatchHTML(p.COLOR)}</td>
+        </tr>`;
+    }).join('');
+}
 
-            h2 {
-                font-size: 1.2rem;
-                margin: 0 0 6px;
-            }
+function renderConnectors() {
+    const body = document.getElementById('connBody');
+    body.innerHTML = Object.values(parsedData.connectors).map(c => {
+        const desc = (c.params.DESCRIPTION || '').replace(/"/g, '');
+        const model = (c.params.MODEL_NAME || '').replace(/"/g, '');
+        const pins = c.pins.map(p => p.name).join(', ');
+        return `<tr>
+            <td><strong>${c.name}</strong></td>
+            <td>${model}</td>
+            <td>${desc}</td>
+            <td>${pins}</td>
+        </tr>`;
+    }).join('');
+}
 
-            .page-header {
-                max-width: 420px;
-                margin: 16px auto 0;
-                text-align: center;
-            }
+function renderWires(p) {
+    const body = document.getElementById('wireBody');
+    body.innerHTML = parsedData.wires.map(w => {
+        const csa = getCSA(w);
+        const color = getColor(w);
+        const vd = calcDrop(w.lengthMM, csa, p.current, p.resistivity);
+        const pct = (vd / p.voltage) * 100;
+        const status = pct > p.maxDropPct ? 'fail' : pct > p.maxDropPct * 0.7 ? 'warn' : 'ok';
+        const statusLabel = status === 'fail' ? 'FAIL' : status === 'warn' ? 'WARN' : 'OK';
+        const from = w.from ? `${w.from.conn} : ${w.from.pin}` : '';
+        const to = w.to ? `${w.to.conn} : ${w.to.pin}` : '';
+        return `<tr>
+            <td><strong>${w.name}</strong></td>
+            <td>${from}</td><td>${to}</td>
+            <td class="num">${w.lengthMM}</td>
+            <td class="num">${csa}</td>
+            <td>${swatchHTML(color)}</td>
+            <td>${w.spool}</td>
+            <td class="num">${vd.toFixed(4)}</td>
+            <td class="num">${pct.toFixed(3)}%</td>
+            <td><span class="badge badge-${status}">${statusLabel}</span></td>
+        </tr>`;
+    }).join('');
+}
 
-            .dark-toggle {
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                font-size: 0.9rem;
-            }
+function renderPaths(p) {
+    const adj = buildGraph();
+    const paths = findAllPaths(adj);
 
-            #result {
-                margin-top: 10px;
-                font-size: 0.95rem;
-                font-weight: 500;
-            }
-        </style>
-    </head>
-    <body data-theme="light">
-        <div class="page-header">
-            <h2>Voltage Drop Calculator</h2>
-            <label class="dark-toggle">
-                <input type="checkbox" id="darkToggle" />
-                Dark Mode
-            </label>
+    // Calculate total drop for each path
+    const pathData = paths.map(path => {
+        let totalDrop = 0;
+        let totalLength = 0;
+        const segments = path.wires.map(w => {
+            const csa = getCSA(w);
+            const vd = calcDrop(w.lengthMM, csa, p.current, p.resistivity);
+            totalDrop += vd;
+            totalLength += w.lengthMM;
+            return { wire: w, csa, vd };
+        });
+        return { ...path, totalDrop, totalLength, segments, pct: (totalDrop / p.voltage) * 100 };
+    });
+
+    // Sort by voltage drop descending
+    pathData.sort((a, b) => b.totalDrop - a.totalDrop);
+
+    const worstDrop = pathData.length ? pathData[0].totalDrop : 0;
+
+    const el = document.getElementById('pathsList');
+    if (!pathData.length) {
+        el.innerHTML = '<div style="color:var(--text-muted);padding:10px">No circuit paths found.</div>';
+        return pathData;
+    }
+
+    el.innerHTML = pathData.map((pd, idx) => {
+        const isWorst = idx === 0;
+        const status = pd.pct > p.maxDropPct ? 'fail' : pd.pct > p.maxDropPct * 0.7 ? 'warn' : 'ok';
+        const wireChain = pd.wires.map(w => {
+            const color = getColor(w);
+            return `${swatchHTML(color)} ${w.name}`;
+        }).join(' <span class="path-arrow">&rarr;</span> ');
+
+        const connPath = pd.nodes.filter(n => isTerminal(n)).map(n => `<strong>${n}</strong>`).join(' &harr; ');
+
+        const detailRows = pd.segments.map(s =>
+            `<tr>
+                <td>${s.wire.name}</td>
+                <td class="num">${s.wire.lengthMM} mm</td>
+                <td class="num">${s.csa} mm&sup2;</td>
+                <td class="num">${s.vd.toFixed(4)} V</td>
+                <td class="num">${((s.vd / p.voltage) * 100).toFixed(3)}%</td>
+            </tr>`
+        ).join('');
+
+        return `<div class="path-item ${isWorst ? 'worst' : ''}" onclick="this.querySelector('.path-detail').classList.toggle('hidden')">
+            <div class="path-header">
+                <span>${connPath}</span>
+                <span>
+                    <span class="badge badge-${status}">${pd.totalDrop.toFixed(4)} V (${pd.pct.toFixed(2)}%)</span>
+                    ${isWorst ? ' <span class="badge badge-fail">WORST</span>' : ''}
+                </span>
+            </div>
+            <div class="path-wires">${wireChain}</div>
+            <div class="path-wires">Total length: ${pd.totalLength} mm &bull; ${pd.wires.length} segment${pd.wires.length !== 1 ? 's' : ''}</div>
+            <div class="path-detail hidden" style="margin-top:8px">
+                <table style="font-size:0.8rem">
+                    <tr><th>Wire</th><th>Length</th><th>CSA</th><th>V Drop</th><th>%</th></tr>
+                    ${detailRows}
+                </table>
+            </div>
+        </div>`;
+    }).join('');
+
+    // Store for summary
+    window._pathData = pathData;
+    return pathData;
+}
+
+function renderSummary(p) {
+    const el = document.getElementById('summarySection');
+    const pathData = window._pathData || [];
+    const worst = pathData[0];
+
+    if (!worst) {
+        el.innerHTML = '';
+        return;
+    }
+
+    const worstStatus = worst.pct > p.maxDropPct ? 'fail' : worst.pct > p.maxDropPct * 0.7 ? 'warn' : 'ok';
+    const bgMap = { fail: 'var(--danger-light)', warn: 'var(--warn-light)', ok: 'var(--success-light)' };
+    const fgMap = { fail: 'var(--danger)', warn: 'var(--warn)', ok: 'var(--success)' };
+
+    const totalWires = parsedData.wires.length;
+    const totalLength = parsedData.wires.reduce((s, w) => s + w.lengthMM, 0);
+    const passPaths = pathData.filter(p2 => p2.pct <= p.maxDropPct).length;
+    const failPaths = pathData.filter(p2 => p2.pct > p.maxDropPct).length;
+
+    el.innerHTML = `
+        <div class="summary-item" style="background:${bgMap[worstStatus]};color:${fgMap[worstStatus]}">
+            <div class="label">Worst Path Drop</div>
+            <div class="value">${worst.totalDrop.toFixed(3)} V</div>
+            <div class="sub">${worst.pct.toFixed(2)}% of ${p.voltage}V</div>
         </div>
-
-        <div class="card" style="margin-top: 10px">
-            <div class="row">
-                <div class="field">
-                    <label>Voltage (V)</label>
-                    <input
-                        id="voltage"
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        oninput="sanitizeNumber(this)"
-                        value="12.6"
-                    />
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="field">
-                    <label>Current (Amps)</label>
-                    <input
-                        id="amps"
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        oninput="sanitizeNumber(this)"
-                        value="5"
-                    />
-                </div>
-            </div>
-
-            <div id="rows"></div>
-
-            <div class="actions">
-                <button onclick="addRow()">Add Segment</button>
-                <button onclick="clearRows()">Clear Segments</button>
-                <label
-                    style="
-                        display: flex;
-                        align-items: center;
-                        margin-left: auto;
-                    "
-                >
-                    <input
-                        id="roundTrip"
-                        type="checkbox"
-                        checked
-                        style="margin-right: 4px"
-                    />
-                    Round Trip
-                </label>
-            </div>
-
-            <div id="result">Drop: 0.000 V (0.00%)</div>
+        <div class="summary-item" style="background:var(--accent-light);color:var(--accent)">
+            <div class="label">Total Paths</div>
+            <div class="value">${pathData.length}</div>
+            <div class="sub">${passPaths} pass, ${failPaths} fail</div>
         </div>
+        <div class="summary-item" style="background:var(--card);border:1px solid var(--border)">
+            <div class="label">Harness Total</div>
+            <div class="value">${totalWires}</div>
+            <div class="sub">wires, ${(totalLength / 1000).toFixed(1)}m total</div>
+        </div>
+        <div class="summary-item" style="background:var(--card);border:1px solid var(--border)">
+            <div class="label">Current</div>
+            <div class="value">${p.current} A</div>
+            <div class="sub">@ ${p.voltage}V</div>
+        </div>
+    `;
+}
 
-        <script>
-            const resistance = {
-              8: 0.000628, 10: 0.000999, 12: 0.001588,
-              14: 0.002525, 16: 0.004016, 18: 0.006385,
-              20: 0.01015, 22: 0.01614,
-            };
-
-            const darkToggle = document.getElementById('darkToggle');
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme) {
-              document.body.dataset.theme = savedTheme;
-              darkToggle.checked = savedTheme === 'dark';
-            }
-            darkToggle.addEventListener('change', e => {
-              const theme = e.target.checked ? 'dark' : 'light';
-              document.body.dataset.theme = theme;
-              localStorage.setItem('theme', theme);
-            });
-
-            function addRow() {
-              const rowCount = document.querySelectorAll('#rows .row').length;
-              const showLabel = rowCount === 0 ? true : false;
-
-              const div = document.createElement('div');
-              div.className = 'row';
-              div.innerHTML = `
-                <div class="field">
-                  ${showLabel ? '<label>Span Length (in)</label>' : ''}
-                  <input type="number" class="len" value="0"
-                   min="0" step="0.1" oninput="sanitizeNumber(this)">
-                </div>
-                <div class="field">
-                  ${showLabel ? '<label>AWG</label>' : ''}
-                  <select class="awg">
-                    ${Object.keys(resistance).map(a => `<option>${a}</option>`).join('')}
-                  </select>
-                </div>
-                <button onclick="this.parentNode.remove(); autoCalc()">✕</button>
-              `;
-              rows.appendChild(div);
-              autoCalc();
-            }
-
-            function sanitizeNumber(el) {
-              if (el.value === '') return;
-              const v = Number(el.value);
-              if (!Number.isFinite(v) || v < 0) {
-                el.value = '';
-              } else {
-                el.value = v;
-              }
-              autoCalc();
-            }
-
-
-            function clearRows() {
-              rows.innerHTML = '';
-              addRow();
-            }
-
-            function autoCalc() {
-              const I = parseFloat(amps.value) || 0;
-              const V_source = parseFloat(voltage.value) || 12.6;
-              const round = roundTrip.checked;
-              let R_total = 0;
-
-              document.querySelectorAll('#rows .row').forEach(row => {
-                const inches = parseFloat(row.querySelector('.len').value) || 0;
-                const awg = parseInt(row.querySelector('.awg').value);
-                const ft = inches / 12;
-                R_total += resistance[awg] * ft * (round ? 2 : 1);
-              });
-
-              const V_drop = I * R_total;
-              const pct = V_drop / V_source * 100;
-              result.textContent = `Drop: ${V_drop.toFixed(3)} V (${pct.toFixed(2)}%)`;
-            }
-
-            document.addEventListener('input', autoCalc);
-
-            addRow();
-        </script>
-    </body>
+// ─── Recalc on input change ─────────────────────────────
+document.querySelectorAll('#voltage, #current, #material, #maxDrop').forEach(el => {
+    el.addEventListener('input', () => { if (parsedData) renderAll(); });
+    el.addEventListener('change', () => { if (parsedData) renderAll(); });
+});
+</script>
+</body>
 </html>
