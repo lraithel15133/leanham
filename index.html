@@ -4,108 +4,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta charset="UTF-8" />
     <title>NWF Voltage Drop Calculator</title>
-    <style>
-        :root {
-            --bg:#f5f5f5;--card:#fff;--text:#1a1a1a;--text-muted:#666;--border:#ddd;
-            --accent:#2563eb;--accent-light:#dbeafe;--danger:#dc2626;--danger-light:#fee2e2;
-            --warn:#d97706;--warn-light:#fef3c7;--success:#16a34a;--success-light:#dcfce7;
-            --table-stripe:#f9fafb;--hover:#f0f4ff;
-        }
-        [data-theme="dark"] {
-            --bg:#0f0f0f;--card:#1a1a1a;--text:#e5e5e5;--text-muted:#999;--border:#333;
-            --accent:#3b82f6;--accent-light:#1e3a5f;--danger:#ef4444;--danger-light:#451a1a;
-            --warn:#f59e0b;--warn-light:#451a03;--success:#22c55e;--success-light:#14332a;
-            --table-stripe:#1f1f1f;--hover:#1e2a3a;
-        }
-        *{box-sizing:border-box;margin:0}
-        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);padding:12px;line-height:1.5}
-        .container{max-width:1400px;margin:0 auto}
-        h1{font-size:1.4rem} h2{font-size:1.05rem;margin-bottom:8px} h3{font-size:.92rem;margin-bottom:6px}
-        .card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px}
-        .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
-        .toggle{display:flex;align-items:center;gap:5px;font-size:.85rem;cursor:pointer}
-
-        .upload-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
-        .upload-zone{flex:1;min-width:180px;border:2px dashed var(--border);border-radius:8px;padding:20px 14px;text-align:center;cursor:pointer;transition:all .2s;font-size:.88rem}
-        .upload-zone:hover,.upload-zone.drag-over{border-color:var(--accent);background:var(--accent-light)}
-        .upload-zone.loaded{border-color:var(--success);border-style:solid;padding:10px 14px}
-        .upload-zone input{display:none}
-        .upload-icon{font-size:1.4rem}
-        .file-name{font-weight:600;font-size:.83rem}
-        .clear-btn{font-size:.72rem;padding:2px 8px;border:1px solid var(--border);border-radius:3px;background:var(--card);color:var(--text);cursor:pointer;margin-left:6px}
-
-        .inputs-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
-        .field{display:flex;flex-direction:column;gap:2px}
-        .field label{font-size:.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em}
-        .field input,.field select{padding:5px 8px;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--text);font-size:.88rem;width:120px}
-
-        .table-wrap{overflow-x:auto}
-        table{width:100%;border-collapse:collapse;font-size:.8rem}
-        th{text-align:left;padding:6px 8px;border-bottom:2px solid var(--border);font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);white-space:nowrap;background:var(--card)}
-        td{padding:5px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
-        tr:nth-child(even) td{background:var(--table-stripe)} tr:hover td{background:var(--hover)}
-        td.num{text-align:right;font-variant-numeric:tabular-nums}
-
-        .badge{display:inline-block;padding:1px 7px;border-radius:3px;font-size:.7rem;font-weight:600}
-        .badge-ok{background:var(--success-light);color:var(--success)}
-        .badge-warn{background:var(--warn-light);color:var(--warn)}
-        .badge-fail{background:var(--danger-light);color:var(--danger)}
-
-        .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:10px}
-        .summary-item{padding:12px;border-radius:8px;text-align:center}
-        .summary-item .label{font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;opacity:.8}
-        .summary-item .value{font-size:1.4rem;font-weight:700;margin-top:1px}
-        .summary-item .sub{font-size:.72rem;opacity:.7}
-
-        .drawing-layout{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
-        .drawing-panel{flex:3;min-width:380px}
-        .groups-panel{flex:1;min-width:270px;max-height:520px;overflow-y:auto}
-
-        .svg-container{background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;position:relative;cursor:grab}
-        .svg-container:active{cursor:grabbing}
-        .svg-container svg{display:block;width:100%;height:460px}
-        .svg-controls{position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:2}
-        .svg-controls button{width:26px;height:26px;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--text);cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center}
-        .svg-legend{position:absolute;bottom:8px;left:8px;font-size:.68rem;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:4px 8px;opacity:.9}
-
-        .group-item{border:1px solid var(--border);border-radius:6px;margin-bottom:6px;overflow:hidden;transition:all .15s;cursor:pointer}
-        .group-item:hover{border-color:var(--accent)}
-        .group-item.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-light)}
-        .group-header{padding:8px 10px;display:flex;justify-content:space-between;align-items:center;font-size:.83rem;font-weight:600}
-        .group-body{padding:0 10px 8px;font-size:.76rem;color:var(--text-muted)}
-        .group-wire{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid var(--border)}
-        .group-wire:last-child{border:none}
-        .group-total{display:flex;justify-content:space-between;padding-top:4px;font-weight:600;color:var(--text);border-top:2px solid var(--border);margin-top:4px}
-        .group-section-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.03em;color:var(--accent);margin-top:4px}
-
-        .tabs{display:flex;gap:0;margin-bottom:-1px;position:relative;z-index:1}
-        .tab{padding:7px 14px;cursor:pointer;font-size:.8rem;font-weight:500;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;color:var(--text-muted);background:transparent}
-        .tab:hover{color:var(--text)}
-        .tab.active{background:var(--card);color:var(--text);border-color:var(--border)}
-        .tab-content{border-top:1px solid var(--border)}
-        .hidden{display:none}
-        .info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px 14px;font-size:.8rem}
-        .info-label{color:var(--text-muted);font-size:.68rem;text-transform:uppercase}
-        .color-swatch{display:inline-block;width:11px;height:11px;border-radius:2px;border:1px solid var(--border);vertical-align:middle;margin-right:3px}
-
-        .load-table input[type="number"]{width:65px;padding:3px 6px;border:1px solid var(--border);border-radius:3px;background:var(--card);color:var(--text);font-size:.82rem;text-align:right}
-        .load-table select{padding:3px 4px;border:1px solid var(--border);border-radius:3px;background:var(--card);color:var(--text);font-size:.78rem}
-        .load-table tr[data-conn]{cursor:pointer;transition:background .1s}
-        .load-table tr[data-conn]:hover td{background:var(--accent-light) !important}
-        .load-table tr[data-conn].hl td{background:var(--accent-light) !important;border-color:var(--accent)}
-        .role-power{color:var(--danger)} .role-ground{color:var(--success)} .role-load{color:var(--accent)} .role-signal{color:var(--warn)}
-
-        /* Scenario toggles */
-        .scenario-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-        .scenario-toggle{display:flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;cursor:pointer;transition:all .15s;user-select:none}
-        .scenario-toggle:hover{border-color:var(--accent)}
-        .scenario-toggle.on{background:var(--accent-light);border-color:var(--accent);font-weight:600}
-        .scenario-toggle input{margin:0}
-        .scenario-preset{padding:3px 10px;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--text);cursor:pointer;font-size:.75rem}
-        .scenario-preset:hover{border-color:var(--accent);color:var(--accent)}
-
-        @media(max-width:700px){body{padding:6px}.drawing-layout{flex-direction:column}.drawing-panel{min-width:unset}.groups-panel{max-height:300px}.svg-container svg{height:280px}}
-    </style>
+    <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body data-theme="light">
 <div class="container">
@@ -115,21 +14,43 @@
     </div>
 
     <div class="upload-row">
-        <div class="upload-zone" id="nwfZone"><div class="upload-icon">&#128268;</div><div>Drop <strong>.nwf</strong> file</div><input type="file" id="nwfInput" accept=".nwf,.txt" /></div>
-        <div class="upload-zone" id="dsiZone"><div class="upload-icon">&#128209;</div><div>Drop <strong>DSI .csv</strong> <em>(optional, for drawing)</em></div><input type="file" id="dsiInput" accept=".csv,.txt,.dsi" /></div>
+        <div class="upload-zone" id="nwfZone">
+            <div class="upload-icon">&#128268;</div>
+            <div>Drop <strong>.nwf</strong> file</div>
+            <input type="file" id="nwfInput" accept=".nwf,.txt" />
+        </div>
+        <div class="upload-zone" id="dsiZone">
+            <div class="upload-icon">&#128209;</div>
+            <div>Drop <strong>DSI .csv</strong> <em>(optional, for drawing)</em></div>
+            <input type="file" id="dsiInput" accept=".csv,.txt,.dsi" />
+        </div>
     </div>
 
     <div id="resultsSection" class="hidden">
-        <div class="card"><h2>Harness Information</h2><div class="info-grid" id="harnessInfo"></div></div>
+        <div class="card">
+            <h2>Harness Information</h2>
+            <div class="info-grid" id="harnessInfo"></div>
+        </div>
 
         <div class="card">
             <h2>System Parameters</h2>
             <div class="inputs-row">
-                <div class="field"><label>System Voltage (V)</label><input id="voltage" type="number" step="0.1" min="0" value="13.5" /></div>
-                <div class="field"><label>Conductor</label>
-                    <select id="material"><option value="0.01724">Copper (20&deg;C)</option><option value="0.02168">Copper (80&deg;C)</option><option value="0.02827">Aluminium (20&deg;C)</option></select>
+                <div class="field">
+                    <label>System Voltage (V)</label>
+                    <input id="voltage" type="number" step="0.1" min="0" value="13.5" />
                 </div>
-                <div class="field"><label>Max Drop %</label><input id="maxDrop" type="number" step="0.5" min="0" value="3" style="width:70px" /></div>
+                <div class="field">
+                    <label>Conductor</label>
+                    <select id="material">
+                        <option value="0.01724">Copper (20&deg;C)</option>
+                        <option value="0.02168">Copper (80&deg;C)</option>
+                        <option value="0.02827">Aluminium (20&deg;C)</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Max Drop %</label>
+                    <input id="maxDrop" type="number" step="0.5" min="0" value="3" style="width:70px" />
+                </div>
             </div>
         </div>
 
@@ -144,8 +65,7 @@
             </div>
         </div>
 
-        <!-- Active Scenario -->
-        <div class="card" id="scenarioCard" class="hidden">
+        <div class="card hidden" id="scenarioCard">
             <h2>Active Scenario</h2>
             <p style="font-size:.76rem;color:var(--text-muted);margin-bottom:8px">Select which relays are energized. Only active relay circuits contribute to shared wire currents. Circuits without a relay are always included.</p>
             <div class="scenario-row" id="scenarioToggles"></div>
@@ -155,7 +75,7 @@
 
         <div class="drawing-layout hidden" id="drawingLayout">
             <div class="drawing-panel">
-                <div class="svg-container" id="svgContainer">
+                <div class="svg-container no-dsi" id="svgContainer">
                     <div class="svg-controls">
                         <button onclick="svgZoom(1.3)" title="Zoom In">+</button>
                         <button onclick="svgZoom(.77)" title="Zoom Out">-</button>
@@ -163,703 +83,65 @@
                     </div>
                     <svg id="harnessSvg" xmlns="http://www.w3.org/2000/svg"></svg>
                     <div class="svg-legend" id="svgLegend"></div>
+                    <div class="svg-placeholder" id="svgPlaceholder">
+                        <div class="placeholder-icon">&#128209;</div>
+                        <div>Drop a <strong>DSI .csv</strong> file above to view the harness drawing</div>
+                    </div>
                 </div>
             </div>
-            <div class="groups-panel"><div class="card" style="margin:0;height:100%"><h3>Circuit Groups <span style="font-weight:normal;font-size:.72rem;color:var(--text-muted)">(click to highlight)</span></h3><div id="groupsList"></div></div></div>
+            <div class="groups-panel">
+                <div class="card" style="margin:0;height:100%">
+                    <h3>Circuit Groups <span style="font-weight:normal;font-size:.72rem;color:var(--text-muted)">(click to highlight)</span></h3>
+                    <div id="groupsList"></div>
+                </div>
+            </div>
         </div>
 
-        <div class="tabs">
-            <div class="tab active" data-tab="wires" onclick="switchTab('wires')">Wires</div>
-            <div class="tab" data-tab="paths" onclick="switchTab('paths')">All Paths</div>
-            <div class="tab" data-tab="spools" onclick="switchTab('spools')">Spools</div>
-            <div class="tab" data-tab="connectors" onclick="switchTab('connectors')">Connectors</div>
+        <div class="tabs-bar">
+            <div class="tabs">
+                <div class="tab active" data-tab="wires" onclick="switchTab('wires')">Wires</div>
+                <div class="tab" data-tab="paths" onclick="switchTab('paths')">All Paths</div>
+                <div class="tab" data-tab="spools" onclick="switchTab('spools')">Spools</div>
+                <div class="tab" data-tab="connectors" onclick="switchTab('connectors')">Connectors</div>
+            </div>
         </div>
-        <div class="card tab-content" id="tab-wires"><div class="table-wrap"><table><thead><tr>
-            <th>Wire</th><th>From</th><th>To</th><th>Length mm</th><th>CSA mm&sup2;</th><th>Color</th><th>Current A</th><th>V Drop</th><th>%</th><th></th>
-        </tr></thead><tbody id="wireBody"></tbody></table></div></div>
-        <div class="card tab-content hidden" id="tab-paths"><h3>Terminal-to-Terminal Paths</h3><div id="pathsList"></div></div>
-        <div class="card tab-content hidden" id="tab-spools"><div class="table-wrap"><table><thead><tr><th>Part No</th><th>Material</th><th>AWG</th><th>CSA mm&sup2;</th><th>OD mm</th><th>Color</th></tr></thead><tbody id="spoolBody"></tbody></table></div></div>
-        <div class="card tab-content hidden" id="tab-connectors"><div class="table-wrap"><table><thead><tr><th>Ref Des</th><th>Model</th><th>Description</th><th>Pins</th></tr></thead><tbody id="connBody"></tbody></table></div></div>
+        <div class="card tab-content" id="tab-wires">
+            <div class="table-wrap">
+                <table>
+                    <thead><tr>
+                        <th>Wire</th><th>From</th><th>To</th><th>Length mm</th><th>CSA mm&sup2;</th><th>Color</th><th>Current A</th><th>V Drop</th><th>%</th><th></th>
+                    </tr></thead>
+                    <tbody id="wireBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card tab-content hidden" id="tab-paths">
+            <h3>Terminal-to-Terminal Paths</h3>
+            <div id="pathsList"></div>
+        </div>
+        <div class="card tab-content hidden" id="tab-spools">
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Part No</th><th>Material</th><th>AWG</th><th>CSA mm&sup2;</th><th>OD mm</th><th>Color</th></tr></thead>
+                    <tbody id="spoolBody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card tab-content hidden" id="tab-connectors">
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Ref Des</th><th>Model</th><th>Description</th><th>Pins</th></tr></thead>
+                    <tbody id="connBody"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
-<script>
-// ═══════════════════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════════════════
-let nwfData = null, dsiData = null;
-let activeGroup = null;
-let svgTransform = { x: 0, y: 0, scale: 1 };
-let circuitGroups = [];
-let connConfig = {};      // connConfig[connName] = { role, current }
-let wireCurrents = {};    // wireCurrents[wireName] = amps in active scenario
-let activeRelays = {};    // activeRelays[relayName] = true/false
-let highlightedConn = null; // connector highlighted from config table hover
-
-// ═══════════════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════════════
-const CMAP = {BLACK:'#222',RED:'#d32f2f',BLUE:'#1565c0',GREEN:'#2e7d32',YELLOW:'#f9a825',WHITE:'#eee',ORANGE:'#ef6c00',BROWN:'#5d4037',PURPLE:'#7b1fa2',PINK:'#e91e63',GRAY:'#757575',GREY:'#757575'};
-function colorCSS(n){if(!n)return'#999';return CMAP[n.split('/')[0].toUpperCase()]||'#999';}
-function swatchHTML(c){return `<span class="color-swatch" style="background:${colorCSS(c)}"></span>${c||''}`;}
-function statusOf(pct,max){return pct>max?'fail':pct>max*.7?'warn':'ok';}
-function getCSA(w){if(!nwfData)return 1;const s=nwfData.spools[w.spool];return s?(parseFloat(s.params.WIRE_CSA)||1):1;}
-function getColor(w){if(!nwfData)return'';const s=nwfData.spools[w.spool];return s?(s.params.COLOR||''):'';}
-function calcDrop(lenMM,csa,amps,rho){return(amps*rho*(lenMM/1000))/csa;}
-function getParams(){return{voltage:parseFloat(document.getElementById('voltage').value)||13.5,resistivity:parseFloat(document.getElementById('material').value)||0.01724,maxDropPct:parseFloat(document.getElementById('maxDrop').value)||3};}
-
-// ═══════════════════════════════════════════════════════════
-// DARK MODE & TABS
-// ═══════════════════════════════════════════════════════════
-const darkToggle=document.getElementById('darkToggle');
-const saved=localStorage.getItem('theme');
-if(saved){document.body.dataset.theme=saved;darkToggle.checked=saved==='dark';}
-darkToggle.addEventListener('change',e=>{const t=e.target.checked?'dark':'light';document.body.dataset.theme=t;localStorage.setItem('theme',t);if(nwfData&&dsiData)renderDrawing();});
-function switchTab(n){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===n));document.querySelectorAll('.tab-content').forEach(t=>t.classList.toggle('hidden',t.id!=='tab-'+n));}
-
-// ═══════════════════════════════════════════════════════════
-// FILE UPLOAD
-// ═══════════════════════════════════════════════════════════
-function setupDrop(zoneId,inputId,handler){
-    const zone=document.getElementById(zoneId),inp=document.getElementById(inputId);
-    zone.addEventListener('click',()=>{if(!zone.classList.contains('loaded'))inp.click();});
-    zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-over');});
-    zone.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
-    zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag-over');if(e.dataTransfer.files.length)handler(e.dataTransfer.files[0],zone);});
-    inp.addEventListener('change',e=>{if(e.target.files.length)handler(e.target.files[0],zone);});
-}
-function markLoaded(zone,name,clearFnName){zone.classList.add('loaded');zone.innerHTML=`<span class="file-name">${name}</span><button class="clear-btn" onclick="event.stopPropagation();${clearFnName}()">Clear</button>`;}
-function loadNWF(file,zone){const r=new FileReader();r.onload=e=>{nwfData=parseNWF(e.target.result);markLoaded(zone,file.name,'clearNWF');autoDetectRoles();onDataChange();};r.readAsText(file);}
-function loadDSI(file,zone){const r=new FileReader();r.onload=e=>{dsiData=parseDSI(e.target.result);markLoaded(zone,file.name,'clearDSI');onDataChange();};r.readAsText(file);}
-function clearNWF(){nwfData=null;connConfig={};activeRelays={};const z=document.getElementById('nwfZone');z.classList.remove('loaded');z.innerHTML='<div class="upload-icon">&#128268;</div><div>Drop <strong>.nwf</strong> file</div><input type="file" id="nwfInput" accept=".nwf,.txt" />';setupDrop('nwfZone','nwfInput',loadNWF);onDataChange();}
-function clearDSI(){dsiData=null;const z=document.getElementById('dsiZone');z.classList.remove('loaded');z.innerHTML='<div class="upload-icon">&#128209;</div><div>Drop <strong>DSI .csv</strong> <em>(optional, for drawing)</em></div><input type="file" id="dsiInput" accept=".csv,.txt,.dsi" />';setupDrop('dsiZone','dsiInput',loadDSI);onDataChange();}
-setupDrop('nwfZone','nwfInput',loadNWF);
-setupDrop('dsiZone','dsiInput',loadDSI);
-function onDataChange(){
-    document.getElementById('resultsSection').classList.toggle('hidden',!nwfData);
-    document.getElementById('drawingLayout').classList.toggle('hidden',!dsiData);
-    if(nwfData)renderAll();
-}
-
-// ═══════════════════════════════════════════════════════════
-// NWF PARSER
-// ═══════════════════════════════════════════════════════════
-function parseNWF(text){
-    const lines=text.split(/\r?\n/),header={},spools={},connectors={},wires=[];
-    for(const line of lines){const t=line.trim();if(!t.startsWith('!'))continue;const m=t.match(/^!\s+(Filename|Harness PartNum|Harness Rev|Harness ID|Modified By|Created Date|Modified Date)\s*:\s*(.*)$/i);if(m)header[m[1].trim()]=m[2].trim();}
-    let i=0;
-    while(i<lines.length){
-        const line=lines[i].trim();
-        if(line.match(/^NEW\s+WIRE_SPOOL\s+/)){
-            const name=line.replace(/^NEW\s+WIRE_SPOOL\s+/,'').trim();const sp={name,params:{}};i++;
-            while(i<lines.length){const l=lines[i].trim();if(l.startsWith('PARAMETER ')){const m=l.match(/^PARAMETER\s+(\S+)\s+(.*)/);if(m)sp.params[m[1]]=m[2].trim();}else if(l.startsWith('NEW ')||l.startsWith('!===='))break;i++;}
-            spools[name]=sp;continue;
-        }
-        if(line.match(/^NEW\s+CONNECTOR\s+/)){
-            const name=line.replace(/^NEW\s+CONNECTOR\s+/,'').trim();const conn={name,params:{},pins:[]};i++;let curPin=null;
-            while(i<lines.length){const l=lines[i].trim();if(l.startsWith('NEW ')||l.startsWith('!===='))break;if(l.startsWith('PIN ')){curPin={name:l.replace(/^PIN\s+/,'').trim(),params:{}};conn.pins.push(curPin);}else if(l.startsWith('PARAMETER ')){const m=l.match(/^PARAMETER\s+(\S+)\s+(.*)/);if(m){const v=m[2].replace(/\s*!.*$/,'').trim();if(curPin)curPin.params[m[1]]=v;else conn.params[m[1]]=v;}}i++;}
-            connectors[name]=conn;continue;
-        }
-        if(line.match(/^NEW\s+WIRE\s+/)){
-            const wm=line.match(/^NEW\s+WIRE\s+(\S+)\s+(\S+)/);
-            if(wm){const w={name:wm[1],spool:wm[2],from:null,to:null,lengthMM:0};i++;
-                while(i<lines.length){const l=lines[i].trim();if(l.startsWith('NEW ')||l.startsWith('!===='))break;if(l.startsWith('ATTACH')){const a=l.match(/^ATTACH\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/);if(a){w.from={conn:a[1],pin:a[2]};w.to={conn:a[3],pin:a[4]};}}if(l.match(/WIRE_LENGTH_MM/)){const m=l.match(/WIRE_LENGTH_MM\s+(\d+\.?\d*)/);if(m)w.lengthMM=parseFloat(m[1]);}i++;}
-                wires.push(w);continue;
-            }
-        }
-        i++;
-    }
-    return{header,spools,connectors,wires};
-}
-
-// ═══════════════════════════════════════════════════════════
-// DSI PARSER
-// ═══════════════════════════════════════════════════════════
-function parseDSI(text){
-    const lines=text.split(/\r?\n/),branches=[],virtualLinks=[],wireSpecs=[],nodeComponents=[];
-    let section='';
-    for(const line of lines){
-        const t=line.trim();
-        if(t.startsWith('%')){section=t.replace(/^%\s*/,'').trim().toLowerCase();continue;}
-        if(!t||t.startsWith('!')||t.startsWith('*'))continue;
-        if(section.includes('branch configuration')){
-            const parts=t.split(':');if(parts.length<7)continue;
-            const fromNode=parts[0],toNode=parts[3],fromPos=parsePos(parts[2]),toPos=parsePos(parts[5]);
-            if(!fromPos||!toPos)continue;
-            const len=parseFloat(parts[6])||0,isVirtual=t.includes('VIRTUAL_LINK_BUNDLE');
-            let bundle='',waypoints=[];
-            for(let j=18;j<parts.length;j++){const p=parts[j].trim();if(p.match(/^BUNDLE/i))bundle=p;else{const wp=parsePos(p);if(wp)waypoints.push(wp);}}
-            if(isVirtual)virtualLinks.push({fromNode,toNode,fromPos,toPos});
-            else branches.push({fromNode,toNode,fromPos,toPos,length:len,bundle,waypoints});
-        }
-        if(section.includes('wire specification')){
-            const parts=t.split(':');if(parts.length<25)continue;
-            wireSpecs.push({name:parts[0],color:parts[3],csa:parseFloat(parts[4])||0,material:parts[5],fromConn:parts[8],fromPin:parts[10],toConn:parts[12],toPin:parts[14],minLen:parseFloat(parts[24])||0,maxLen:parseFloat(parts[25])||0,spool:parts[28]||''});
-        }
-        if(section.includes('node components')){
-            const parts=t.split(':');if(parts.length<5)continue;
-            nodeComponents.push({refDes:parts[0],type:parts[4],desc:parts[6]||'',partNum:parts[8]||''});
-        }
-    }
-    const nodePos={};
-    for(const b of[...branches,...virtualLinks]){if(b.fromPos)nodePos[b.fromNode]=b.fromPos;if(b.toPos)nodePos[b.toNode]=b.toPos;}
-    const connectorNodes={};
-    for(const vl of virtualLinks){
-        if(vl.toNode.match(/^(X-|SP-)/))connectorNodes[vl.toNode]={node:vl.fromNode,pos:vl.toPos};
-        if(vl.fromNode.match(/^(X-|SP-)/))connectorNodes[vl.fromNode]={node:vl.toNode,pos:vl.fromPos};
-    }
-    return{branches,virtualLinks,wireSpecs,nodeComponents,nodePos,connectorNodes};
-}
-function parsePos(s){if(!s)return null;const m=s.trim().match(/x(-?\d+\.?\d*)y(-?\d+\.?\d*)/i);return m?{x:parseFloat(m[1]),y:parseFloat(m[2])}:null;}
-
-// ═══════════════════════════════════════════════════════════
-// AUTO-DETECT CONNECTOR ROLES
-// ═══════════════════════════════════════════════════════════
-function autoDetectRoles(){
-    if(!nwfData)return;
-    connConfig={};
-    for(const c of Object.values(nwfData.connectors)){
-        if(c.name.startsWith('SP-'))continue;
-        const desc=((c.params.DESCRIPTION||'')+(c.params.MODEL_NAME||'')).replace(/"/g,'').toUpperCase();
-        let role='load',current=5;
-        if(desc.includes('RING')){
-            const connWires=nwfData.wires.filter(w=>(w.from&&w.from.conn===c.name)||(w.to&&w.to.conn===c.name));
-            const colors=connWires.map(w=>getColor(w).toUpperCase());
-            if(colors.some(c2=>c2==='BLACK')){role='ground';current=0;}
-            else{role='power';current=0;}
-        }
-        else if(desc.includes('FUSE')){role='passthrough';current=0;}
-        else if(desc.includes('RELAY')){role='passthrough';current=0;}
-        else if(desc.includes('RECP')){role='signal';current=0.15;}
-        else{role='load';current=5;}
-        connConfig[c.name]={role,current};
-    }
-}
-
-// ═══════════════════════════════════════════════════════════
-// CIRCUIT GRAPH
-// ═══════════════════════════════════════════════════════════
-function getConnDesc(name){return((nwfData.connectors[name]?.params?.DESCRIPTION||'')+(nwfData.connectors[name]?.params?.MODEL_NAME||'')).toUpperCase();}
-
-function buildCircuitGraph(){
-    const adj={};
-    function addEdge(a,b,wire,internal=false){
-        if(!adj[a])adj[a]=[];if(!adj[b])adj[b]=[];
-        adj[a].push({node:b,wire,internal});
-        adj[b].push({node:a,wire,internal});
-    }
-    for(const w of nwfData.wires){
-        if(!w.from||!w.to)continue;
-        addEdge(`${w.from.conn}:${w.from.pin}`,`${w.to.conn}:${w.to.pin}`,w);
-    }
-    for(const c of Object.values(nwfData.connectors)){
-        const desc=getConnDesc(c.name);
-        if(desc.includes('FUSE')){
-            for(let i=0;i<c.pins.length;i++)for(let j=i+1;j<c.pins.length;j++)
-                addEdge(`${c.name}:${c.pins[i].name}`,`${c.name}:${c.pins[j].name}`,{name:`[${c.name} fuse]`,spool:'',lengthMM:0,from:{conn:c.name,pin:c.pins[i].name},to:{conn:c.name,pin:c.pins[j].name},_internal:true},true);
-        }
-        if(desc.includes('RELAY')){
-            const pn=c.pins.map(p=>p.name);
-            if(pn.includes('30')&&pn.includes('87'))addEdge(`${c.name}:30`,`${c.name}:87`,{name:`[${c.name} contact]`,spool:'',lengthMM:0,from:{conn:c.name,pin:'30'},to:{conn:c.name,pin:'87'},_internal:true,_relay:c.name},true);
-            if(pn.includes('85')&&pn.includes('86'))addEdge(`${c.name}:85`,`${c.name}:86`,{name:`[${c.name} coil]`,spool:'',lengthMM:0,from:{conn:c.name,pin:'85'},to:{conn:c.name,pin:'86'},_internal:true,_relay:c.name},true);
-        }
-    }
-    return adj;
-}
-
-function isTerminal(nodeKey){return !nodeKey.startsWith('SP-');}
-
-function findPathBetween(adj, startKey, endRole){
-    const visited=new Set([startKey]);
-    const queue=[{node:startKey,path:[startKey],wires:[]}];
-    while(queue.length){
-        const{node,path,wires}=queue.shift();
-        const[conn]=node.split(':');
-        if(node!==startKey&&connConfig[conn]&&connConfig[conn].role===endRole)
-            return{to:node,path,wires};
-        for(const{node:next,wire}of(adj[node]||[])){
-            if(!visited.has(next)){visited.add(next);queue.push({node:next,path:[...path,next],wires:[...wires,wire]});}
-        }
-    }
-    return null;
-}
-
-// ═══════════════════════════════════════════════════════════
-// DETECT CIRCUITS WITH RELAY GROUP AWARENESS
-// ═══════════════════════════════════════════════════════════
-function buildCircuits(){
-    if(!nwfData)return[];
-    const adj=buildCircuitGraph();
-    const groups=[];
-
-    for(const[connName,cfg]of Object.entries(connConfig)){
-        if(cfg.role!=='load'&&cfg.role!=='signal')continue;
-        if(cfg.current<=0)continue;
-        const connObj=nwfData.connectors[connName];
-        if(!connObj)continue;
-
-        for(const pin of connObj.pins){
-            const pinKey=`${connName}:${pin.name}`;
-            const hasWire=nwfData.wires.some(w=>
-                (w.from&&w.from.conn===connName&&w.from.pin===pin.name)||
-                (w.to&&w.to.conn===connName&&w.to.pin===pin.name));
-            if(!hasWire)continue;
-
-            const pinWire=nwfData.wires.find(w=>
-                (w.from&&w.from.conn===connName&&w.from.pin===pin.name)||
-                (w.to&&w.to.conn===connName&&w.to.pin===pin.name));
-            const wireColor=pinWire?getColor(pinWire).toUpperCase():'';
-            const isGndPin=wireColor==='BLACK';
-            if(isGndPin)continue;
-
-            // Trace supply path to power
-            const supplyPath=findPathBetween(adj,pinKey,'power');
-            // Find ground pin on same connector for return path
-            let returnPath=null;
-            for(const gndPin of connObj.pins){
-                if(gndPin.name===pin.name)continue;
-                const gw=nwfData.wires.find(w=>
-                    (w.from&&w.from.conn===connName&&w.from.pin===gndPin.name)||
-                    (w.to&&w.to.conn===connName&&w.to.pin===gndPin.name));
-                if(!gw||getColor(gw).toUpperCase()!=='BLACK')continue;
-                returnPath=findPathBetween(adj,`${connName}:${gndPin.name}`,'ground');
-                if(returnPath)break;
-            }
-            // Signal connectors: trace through relay coil to ground
-            if(!returnPath&&cfg.role==='signal'){
-                returnPath=findPathBetween(adj,pinKey,'ground');
-            }
-            if(!supplyPath&&!returnPath)continue;
-
-            // Detect which relay this circuit passes through
-            const allPathWires=[ ...(supplyPath?supplyPath.wires:[]), ...(returnPath?returnPath.wires:[]) ];
-            let relayGroup='none';
-            for(const w of allPathWires){
-                if(w._relay){relayGroup=w._relay;break;}
-            }
-
-            const supplyWires=supplyPath?supplyPath.wires.filter(w=>!w._internal):[];
-            const returnWires=returnPath?returnPath.wires.filter(w=>!w._internal):[];
-            const circuitName=pinWire?pinWire.name:`${connName}:${pin.name}`;
-            const connDesc=(nwfData.connectors[connName].params.DESCRIPTION||'').replace(/"/g,'');
-
-            groups.push({
-                name:circuitName, connName, pinName:pin.name,
-                desc:`${connName} pin ${pin.name} — ${connDesc}`,
-                current:cfg.current,
-                relayGroup,
-                supplyWires, returnWires,
-                allWireNames:[...supplyWires,...returnWires].map(w=>w.name)
-            });
-        }
-    }
-
-    // Auto-detect relay groups and initialize toggles
-    // Default: only ONE relay active at a time (realistic scenario)
-    const relays=[...new Set(groups.map(g=>g.relayGroup).filter(r=>r!=='none'))];
-    const isFirstLoad=!relays.some(r=>r in activeRelays);
-    for(const r of relays){
-        if(!(r in activeRelays)) activeRelays[r]=isFirstLoad?(r===relays[0]):false;
-    }
-
-    return groups;
-}
-
-// ═══════════════════════════════════════════════════════════
-// CURRENT CALCULATION — RELAY-AWARE
-// ═══════════════════════════════════════════════════════════
-function calculateWireCurrents(){
-    wireCurrents={};
-    for(const w of nwfData.wires) wireCurrents[w.name]=0;
-
-    // Only sum currents from circuits whose relay is active (or have no relay)
-    for(const g of circuitGroups){
-        const isActive = g.relayGroup==='none' || activeRelays[g.relayGroup];
-        if(!isActive)continue;
-        for(const w of[...g.supplyWires,...g.returnWires]){
-            wireCurrents[w.name]=(wireCurrents[w.name]||0)+g.current;
-        }
-    }
-}
-
-function calculateGroupDrops(){
-    const p=getParams();
-    for(const g of circuitGroups){
-        // For this group's voltage drop, use the wire currents from active scenario
-        g.supplyDrop=g.supplyWires.reduce((s,w)=>s+calcDrop(w.lengthMM,getCSA(w),wireCurrents[w.name]||0,p.resistivity),0);
-        g.returnDrop=g.returnWires.reduce((s,w)=>s+calcDrop(w.lengthMM,getCSA(w),wireCurrents[w.name]||0,p.resistivity),0);
-        g.totalDrop=g.supplyDrop+g.returnDrop;
-        g.pct=(g.totalDrop/p.voltage)*100;
-    }
-    circuitGroups.sort((a,b)=>b.totalDrop-a.totalDrop);
-}
-
-// ═══════════════════════════════════════════════════════════
-// SVG DRAWING
-// ═══════════════════════════════════════════════════════════
-function renderDrawing(){
-    if(!dsiData||!nwfData)return;
-    const svg=document.getElementById('harnessSvg');
-    const p=getParams();
-    const isDark=document.body.dataset.theme==='dark';
-
-    const allPos=Object.values(dsiData.nodePos);
-    if(!allPos.length)return;
-    let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
-    for(const pos of allPos){minX=Math.min(minX,pos.x);maxX=Math.max(maxX,pos.x);minY=Math.min(minY,pos.y);maxY=Math.max(maxY,pos.y);}
-    const pad=40;minX-=pad;minY-=pad;maxX+=pad;maxY+=pad;
-    svg.setAttribute('viewBox',`${minX} ${minY} ${maxX-minX} ${maxY-minY}`);
-
-    // Wire-to-branch routing
-    const wireRoutes={};
-    const branchAdj={};
-    function addBA(a,b,branch){if(!branchAdj[a])branchAdj[a]=[];if(!branchAdj[b])branchAdj[b]=[];branchAdj[a].push({node:b,branch});branchAdj[b].push({node:a,branch});}
-    for(const br of dsiData.branches)addBA(br.fromNode,br.toNode,br);
-    for(const w of nwfData.wires){
-        if(!w.from||!w.to)continue;
-        const fi=dsiData.connectorNodes[w.from.conn],ti=dsiData.connectorNodes[w.to.conn];
-        if(!fi||!ti)continue;
-        if(fi.node===ti.node){wireRoutes[w.name]=[];continue;}
-        const visited=new Set([fi.node]),queue=[{node:fi.node,path:[]}];let found=null;
-        while(queue.length&&!found){const{node,path}=queue.shift();for(const{node:next,branch}of(branchAdj[node]||[])){if(visited.has(next))continue;visited.add(next);const np=[...path,branch];if(next===ti.node){found=np;break;}queue.push({node:next,path:np});}}
-        wireRoutes[w.name]=found||[];
-    }
-
-    // Highlighted branches for active group OR hovered connector
-    const hlBranches=new Set(),hlConns=new Set();
-    if(activeGroup!==null&&circuitGroups[activeGroup]){
-        const wns=circuitGroups[activeGroup].allWireNames;
-        for(const wn of wns){if(wireRoutes[wn])for(const br of wireRoutes[wn])hlBranches.add(br);
-            const w=nwfData.wires.find(w2=>w2.name===wn);if(w){if(w.from)hlConns.add(w.from.conn);if(w.to)hlConns.add(w.to.conn);}}
-    }
-    // Connector hover highlight
-    if(highlightedConn){
-        hlConns.add(highlightedConn);
-        // Highlight all wires connected to this connector
-        for(const w of nwfData.wires){
-            if((w.from&&w.from.conn===highlightedConn)||(w.to&&w.to.conn===highlightedConn)){
-                if(wireRoutes[w.name])for(const br of wireRoutes[w.name])hlBranches.add(br);
-                if(w.from)hlConns.add(w.from.conn);
-                if(w.to)hlConns.add(w.to.conn);
-            }
-        }
-    }
-    const hasHighlight = activeGroup!==null || highlightedConn;
-
-    // Worst drop per branch
-    const branchWorstPct=new Map();
-    for(const w of nwfData.wires){
-        const route=wireRoutes[w.name]||[];
-        const cur=wireCurrents[w.name]||0;
-        const vd=calcDrop(w.lengthMM,getCSA(w),cur,p.resistivity);
-        const pct=(vd/p.voltage)*100;
-        for(const br of route){const c=branchWorstPct.get(br)||0;if(pct>c)branchWorstPct.set(br,pct);}
-    }
-
-    let html=`<g id="svgRoot" transform="translate(${svgTransform.x},${svgTransform.y}) scale(${svgTransform.scale})">`;
-    const bc=isDark?'#444':'#ccc';
-
-    for(const br of dsiData.branches){
-        const pts=[br.fromPos,...br.waypoints,br.toPos];
-        const ptStr=pts.map(p2=>`${p2.x},${p2.y}`).join(' ');
-        const isHL=hlBranches.has(br);
-        const worstPct=branchWorstPct.get(br)||0;
-        let color=bc,width=3,opacity=.5;
-        if(hasHighlight){
-            if(isHL){
-                color=worstPct>p.maxDropPct?'#ef4444':worstPct>p.maxDropPct*.7?'#f59e0b':'#22c55e';
-                width=5;opacity=1;
-            }else{opacity=.15;}
-        }else{
-            if(worstPct>0){const t=Math.min(worstPct/p.maxDropPct,1.5);color=t>1?'#ef4444':t>.7?'#f59e0b':isDark?'#555':'#bbb';opacity=.4+t*.4;width=2+t*2;}
-        }
-        html+=`<polyline points="${ptStr}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round" opacity="${opacity}" />`;
-        if(isHL&&br.bundle){
-            const mid=pts[Math.floor(pts.length/2)];
-            const branchWires=nwfData.wires.filter(w=>(wireRoutes[w.name]||[]).includes(br));
-            const totalCur=branchWires.reduce((s,w)=>Math.max(s,wireCurrents[w.name]||0),0);
-            if(totalCur>0)html+=`<text x="${mid.x}" y="${mid.y-4}" text-anchor="middle" font-size="3.2" fill="${color}" font-weight="600">${totalCur.toFixed(1)}A</text>`;
-        }
-    }
-
-    for(const[name,pos]of Object.entries(dsiData.nodePos)){
-        if(name.match(/^(X-|SP-)/))continue;
-        html+=`<circle cx="${pos.x}" cy="${pos.y}" r="1.2" fill="${isDark?'#555':'#aaa'}" opacity="${hasHighlight?.15:.5}" />`;
-    }
-
-    for(const[name,info]of Object.entries(dsiData.connectorNodes)){
-        const pos=info.pos,isSplice=name.startsWith('SP-'),isHL=hlConns.has(name);
-        const baseOp=hasHighlight&&!isHL?.2:1;
-        const cfg=connConfig[name];
-        const roleColor=cfg?{power:'#dc2626',ground:'#16a34a',load:'#2563eb',signal:'#d97706',passthrough:isDark?'#666':'#999'}[cfg.role]:(isDark?'#666':'#999');
-
-        if(isSplice){
-            html+=`<circle cx="${pos.x}" cy="${pos.y}" r="2.5" fill="${isHL?'#f59e0b':isDark?'#444':'#bbb'}" stroke="${isDark?'#777':'#888'}" stroke-width=".5" opacity="${baseOp}" />`;
-            html+=`<text x="${pos.x}" y="${pos.y+5.5}" text-anchor="middle" font-size="2.8" fill="${isDark?'#999':'#777'}" opacity="${baseOp}">${name}</text>`;
-        }else{
-            const isHover=highlightedConn===name;
-            const w2=isHover?20:16, h2=isHover?11:9;
-            const stroke=isHover?'#f59e0b':isHL?'#3b82f6':roleColor;
-            const sw=isHover?2:isHL?1.2:.7;
-            const fill=isHover?(isDark?'#4a3000':'#fff3cd'):isHL?(isDark?'#1e3a5f':'#dbeafe'):(isDark?'#252525':'#fff');
-            const connOp=isHover?1:baseOp;
-            if(isHover) html+=`<rect x="${pos.x-w2/2-2}" y="${pos.y-h2/2-2}" width="${w2+4}" height="${h2+4}" rx="4" fill="none" stroke="#f59e0b" stroke-width="1" opacity=".5" stroke-dasharray="2,2"><animate attributeName="stroke-dashoffset" from="0" to="8" dur="1s" repeatCount="indefinite"/></rect>`;
-            html+=`<rect x="${pos.x-w2/2}" y="${pos.y-h2/2}" width="${w2}" height="${h2}" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" opacity="${connOp}" />`;
-            html+=`<text x="${pos.x}" y="${pos.y+.5}" text-anchor="middle" font-size="${isHover?3.5:3}" fill="${isHover?'#f59e0b':isDark?'#ddd':'#333'}" font-weight="600" opacity="${connOp}" dominant-baseline="middle">${name}</text>`;
-            const roleLabel={power:'PWR',ground:'GND',load:'LOAD',signal:'SIG',passthrough:''}[cfg?.role||'']||'';
-            if(roleLabel)html+=`<text x="${pos.x}" y="${pos.y+h2/2+3.5}" text-anchor="middle" font-size="2.3" fill="${roleColor}" opacity="${baseOp}" font-weight="600">${roleLabel}${cfg&&cfg.current>0?' '+cfg.current+'A':''}</text>`;
-        }
-    }
-
-    html+='</g>';
-    svg.innerHTML=html;
-    const legend=document.getElementById('svgLegend');
-    if(highlightedConn) legend.innerHTML=`Highlighting: <strong>${highlightedConn}</strong>`;
-    else if(activeGroup!==null) legend.innerHTML=`Showing: <strong>${circuitGroups[activeGroup]?.name||''}</strong> | Click to deselect`;
-    else legend.innerHTML='Heat map: wire voltage drop | Click a circuit group to isolate';
-}
-
-// Pan/Zoom
-let isPanning=false,panStart={x:0,y:0};
-const svgEl=document.getElementById('svgContainer');
-svgEl.addEventListener('mousedown',e=>{if(e.button===0){isPanning=true;panStart={x:e.clientX-svgTransform.x,y:e.clientY-svgTransform.y};}});
-window.addEventListener('mousemove',e=>{if(isPanning){svgTransform.x=e.clientX-panStart.x;svgTransform.y=e.clientY-panStart.y;updateSvgT();}});
-window.addEventListener('mouseup',()=>{isPanning=false;});
-svgEl.addEventListener('wheel',e=>{e.preventDefault();svgTransform.scale*=e.deltaY>0?.9:1.1;updateSvgT();},{passive:false});
-function svgZoom(f){svgTransform.scale*=f;updateSvgT();}
-function svgReset(){svgTransform={x:0,y:0,scale:1};updateSvgT();}
-function updateSvgT(){const r=document.getElementById('svgRoot');if(r)r.setAttribute('transform',`translate(${svgTransform.x},${svgTransform.y}) scale(${svgTransform.scale})`);}
-
-// ═══════════════════════════════════════════════════════════
-// RENDERING
-// ═══════════════════════════════════════════════════════════
-function renderAll(){
-    if(!nwfData)return;
-    circuitGroups=buildCircuits();
-    calculateWireCurrents();
-    calculateGroupDrops();
-    const p=getParams();
-    renderHarnessInfo();
-    renderLoadConfig();
-    renderScenario();
-    renderSpools();
-    renderConnectors();
-    renderWires(p);
-    renderPaths(p);
-    renderGroups(p);
-    renderSummary(p);
-    if(dsiData)renderDrawing();
-}
-
-function renderHarnessInfo(){
-    const h=nwfData.header;
-    document.getElementById('harnessInfo').innerHTML=[['Harness PartNum','Part Number'],['Harness Rev','Rev'],['Harness ID','ID'],['Modified By','Author'],['Created Date','Created'],['Modified Date','Modified']].map(([k,l])=>h[k]?`<div><div class="info-label">${l}</div><div>${h[k]}</div></div>`:'').join('');
-}
-
-function renderLoadConfig(){
-    const body=document.getElementById('loadBody');
-    const conns=Object.values(nwfData.connectors).filter(c=>!c.name.startsWith('SP-')).sort((a,b)=>a.name.localeCompare(b.name));
-    body.innerHTML=conns.map(c=>{
-        const cfg=connConfig[c.name]||{role:'passthrough',current:0};
-        const desc=(c.params.DESCRIPTION||'').replace(/"/g,'');
-        const pins=c.pins.map(p=>p.name).join(', ');
-        return `<tr data-conn="${c.name}" onmouseenter="onConnHover('${c.name}')" onmouseleave="onConnHover(null)">
-            <td><strong>${c.name}</strong></td>
-            <td style="font-size:.75rem;max-width:200px;overflow:hidden;text-overflow:ellipsis">${desc}</td>
-            <td><select class="role-${cfg.role}" onchange="setRole('${c.name}',this.value)" onclick="event.stopPropagation()">
-                <option value="power" ${cfg.role==='power'?'selected':''}>Power Source</option>
-                <option value="ground" ${cfg.role==='ground'?'selected':''}>Ground Return</option>
-                <option value="load" ${cfg.role==='load'?'selected':''}>Load</option>
-                <option value="signal" ${cfg.role==='signal'?'selected':''}>Signal/Trigger</option>
-                <option value="passthrough" ${cfg.role==='passthrough'?'selected':''}>Pass-through</option>
-            </select></td>
-            <td>${cfg.role==='load'||cfg.role==='signal'
-                ?`<input type="number" value="${cfg.current}" min="0" step="0.1" onchange="setCurrent('${c.name}',this.value)" onclick="event.stopPropagation()" />`
-                :`<span style="color:var(--text-muted);font-size:.75rem">${cfg.role==='power'||cfg.role==='ground'?'auto':'—'}</span>`}</td>
-            <td style="font-size:.75rem">${pins}</td>
-        </tr>`;
-    }).join('');
-}
-
-function onConnHover(connName){
-    highlightedConn=connName;
-    if(dsiData&&nwfData){
-        renderDrawing();
-        // Scroll drawing into view if hovering a connector
-        if(connName){
-            const el=document.getElementById('drawingLayout');
-            if(el&&!isElementInViewport(el))el.scrollIntoView({behavior:'smooth',block:'nearest'});
-        }
-    }
-}
-function isElementInViewport(el){
-    const r=el.getBoundingClientRect();
-    return r.top<window.innerHeight&&r.bottom>0;
-}
-
-function setRole(conn,role){connConfig[conn].role=role;connConfig[conn].current=role==='load'?5:role==='signal'?0.15:0;activeGroup=null;renderAll();}
-function setCurrent(conn,val){connConfig[conn].current=parseFloat(val)||0;activeGroup=null;renderAll();}
-
-function renderScenario(){
-    const relays=[...new Set(circuitGroups.map(g=>g.relayGroup).filter(r=>r!=='none'))];
-    const el=document.getElementById('scenarioToggles');
-    const card=document.getElementById('scenarioCard');
-    if(!relays.length){card.classList.add('hidden');return;}
-    card.classList.remove('hidden');
-
-    // Get relay descriptions
-    const relayDescs={};
-    for(const r of relays){
-        // Find circuits that go through this relay to determine what it switches
-        const relayCircuits=circuitGroups.filter(g=>g.relayGroup===r&&connConfig[g.connName]?.role==='load');
-        const circNames=relayCircuits.map(g=>g.name);
-        relayDescs[r]=circNames.length?circNames.join(', '):'';
-    }
-
-    let html=relays.map(r=>{
-        const on=activeRelays[r]!==false;
-        return`<label class="scenario-toggle ${on?'on':''}">
-            <input type="checkbox" ${on?'checked':''} onchange="toggleRelay('${r}',this.checked)" />
-            <span><strong>${r}</strong></span>
-            <span style="font-size:.72rem;color:var(--text-muted)">${relayDescs[r]}</span>
-        </label>`;
-    }).join('');
-
-    // Preset buttons
-    html+=`<span style="margin-left:8px;font-size:.72rem;color:var(--text-muted)">Presets:</span>`;
-    for(const r of relays){
-        html+=`<button class="scenario-preset" onclick="setScenario('${r}')">${r} only</button>`;
-    }
-    html+=`<button class="scenario-preset" onclick="setScenario('all')">All On</button>`;
-
-    el.innerHTML=html;
-}
-
-function toggleRelay(relay,on){
-    activeRelays[relay]=on;
-    recalcFromScenario();
-}
-
-function setScenario(which){
-    const relays=[...new Set(circuitGroups.map(g=>g.relayGroup).filter(r=>r!=='none'))];
-    if(which==='all'){for(const r of relays)activeRelays[r]=true;}
-    else{for(const r of relays)activeRelays[r]=(r===which);}
-    recalcFromScenario();
-}
-
-function recalcFromScenario(){
-    calculateWireCurrents();
-    calculateGroupDrops();
-    const p=getParams();
-    renderScenario();
-    renderWires(p);
-    renderGroups(p);
-    renderSummary(p);
-    if(dsiData)renderDrawing();
-}
-
-function renderSpools(){
-    document.getElementById('spoolBody').innerHTML=Object.values(nwfData.spools).map(s=>{const p2=s.params;return`<tr><td>${p2.PART_NO||s.name}</td><td>${p2.WIRE_MATERIAL||''}</td><td>${p2.WIRE_SIZE||''}</td><td class="num">${p2.WIRE_CSA||''}</td><td class="num">${p2.THICKNESS||''}</td><td>${swatchHTML(p2.COLOR)}</td></tr>`;}).join('');
-}
-function renderConnectors(){
-    document.getElementById('connBody').innerHTML=Object.values(nwfData.connectors).map(c=>`<tr><td><strong>${c.name}</strong></td><td>${(c.params.MODEL_NAME||'').replace(/"/g,'')}</td><td>${(c.params.DESCRIPTION||'').replace(/"/g,'')}</td><td>${c.pins.map(p=>p.name).join(', ')}</td></tr>`).join('');
-}
-
-function renderWires(p){
-    document.getElementById('wireBody').innerHTML=nwfData.wires.map(w=>{
-        const csa=getCSA(w),color=getColor(w),cur=wireCurrents[w.name]||0;
-        const vd=calcDrop(w.lengthMM,csa,cur,p.resistivity);
-        const pct=(vd/p.voltage)*100,st=statusOf(pct,p.maxDropPct);
-        return`<tr><td><strong>${w.name}</strong></td><td>${w.from?w.from.conn+':'+w.from.pin:''}</td><td>${w.to?w.to.conn+':'+w.to.pin:''}</td><td class="num">${w.lengthMM}</td><td class="num">${csa}</td><td>${swatchHTML(color)}</td><td class="num">${cur.toFixed(2)}</td><td class="num">${vd.toFixed(4)}</td><td class="num">${pct.toFixed(2)}%</td><td><span class="badge badge-${st}">${st==='fail'?'FAIL':st==='warn'?'WARN':'OK'}</span></td></tr>`;
-    }).join('');
-}
-
-function renderPaths(p){
-    const adj=buildCircuitGraph();
-    const terminals=Object.keys(adj).filter(isTerminal);
-    const directPaths=[];
-    for(const start of terminals){
-        for(const{node:next,wire}of(adj[start]||[])){
-            if(isTerminal(next)&&!wire._internal){
-                const k=[start,next].sort().join('|');
-                if(!directPaths.some(p2=>([p2.from,p2.to].sort().join('|'))===k)){
-                    const vd=calcDrop(wire.lengthMM,getCSA(wire),wireCurrents[wire.name]||0,p.resistivity);
-                    directPaths.push({from:start,to:next,wire,vd,pct:(vd/p.voltage)*100});
-                }
-            }
-        }
-    }
-    directPaths.sort((a,b)=>b.vd-a.vd);
-    document.getElementById('pathsList').innerHTML=directPaths.map(dp=>{
-        const st=statusOf(dp.pct,p.maxDropPct);
-        return`<div style="padding:5px 0;border-bottom:1px solid var(--border);font-size:.8rem">
-            <span>${dp.from} &harr; ${dp.to}</span>
-            <span class="badge badge-${st}" style="margin-left:6px">${dp.vd.toFixed(4)}V (${dp.pct.toFixed(2)}%)</span>
-            <span style="font-size:.72rem;color:var(--text-muted);margin-left:6px">${dp.wire.name} @ ${(wireCurrents[dp.wire.name]||0).toFixed(1)}A</span>
-        </div>`;
-    }).join('')||'<div style="color:var(--text-muted);padding:8px;font-size:.82rem">No paths.</div>';
-}
-
-function renderGroups(p){
-    const el=document.getElementById('groupsList');
-    if(!circuitGroups.length){el.innerHTML='<div style="color:var(--text-muted);font-size:.8rem;padding:8px">No load circuits detected.</div>';return;}
-
-    el.innerHTML=circuitGroups.map((g,idx)=>{
-        const st=statusOf(g.pct,p.maxDropPct);
-        const isActive=activeGroup===idx;
-        const relayActive=g.relayGroup==='none'||activeRelays[g.relayGroup]!==false;
-        const dimmed=!relayActive;
-
-        function wireRow(w){
-            const cur=wireCurrents[w.name]||0;
-            const vd=calcDrop(w.lengthMM,getCSA(w),cur,p.resistivity);
-            return`<div class="group-wire"><span>${swatchHTML(getColor(w))} ${w.name}</span><span>${cur.toFixed(1)}A &rarr; ${vd.toFixed(4)}V</span></div>`;
-        }
-
-        let bodyHTML='';
-        if(g.relayGroup!=='none')bodyHTML+=`<div style="font-size:.68rem;margin-bottom:2px"><span class="badge ${relayActive?'badge-ok':'badge-warn'}">${g.relayGroup} ${relayActive?'ON':'OFF'}</span></div>`;
-        if(g.supplyWires.length)bodyHTML+=`<div class="group-section-label">Supply (${g.supplyDrop.toFixed(4)}V)</div>`+g.supplyWires.map(wireRow).join('');
-        if(g.returnWires.length)bodyHTML+=`<div class="group-section-label">Return (${g.returnDrop.toFixed(4)}V)</div>`+g.returnWires.map(wireRow).join('');
-        bodyHTML+=`<div class="group-total"><span>Round Trip @ ${g.current}A</span><span>${g.totalDrop.toFixed(4)}V (${g.pct.toFixed(2)}%)</span></div>`;
-
-        return`<div class="group-item ${isActive?'active':''}" style="${dimmed?'opacity:.4':''}" onclick="toggleGroup(${idx})">
-            <div class="group-header"><span>${g.name}</span><span class="badge badge-${st}">${g.totalDrop.toFixed(3)}V &bull; ${g.pct.toFixed(1)}%</span></div>
-            <div class="group-body"><div style="font-size:.7rem;color:var(--text-muted);margin-bottom:3px">${g.desc}</div>${bodyHTML}</div>
-        </div>`;
-    }).join('');
-}
-
-function toggleGroup(idx){activeGroup=activeGroup===idx?null:idx;const p=getParams();renderGroups(p);if(dsiData)renderDrawing();}
-
-function renderSummary(p){
-    const el=document.getElementById('summarySection');
-    // Only consider active circuits for summary
-    const activeCircuits=circuitGroups.filter(g=>g.relayGroup==='none'||activeRelays[g.relayGroup]!==false);
-    const worst=activeCircuits[0];
-    if(!worst){el.innerHTML='';return;}
-    const st=statusOf(worst.pct,p.maxDropPct);
-    const bgMap={fail:'var(--danger-light)',warn:'var(--warn-light)',ok:'var(--success-light)'};
-    const fgMap={fail:'var(--danger)',warn:'var(--warn)',ok:'var(--success)'};
-    const passCt=activeCircuits.filter(g=>g.pct<=p.maxDropPct).length;
-    const failCt=activeCircuits.filter(g=>g.pct>p.maxDropPct).length;
-    const totalLen=nwfData.wires.reduce((s,w)=>s+w.lengthMM,0);
-    let maxCurWire='',maxCur=0;
-    for(const[wn,c]of Object.entries(wireCurrents)){if(c>maxCur){maxCur=c;maxCurWire=wn;}}
-    const activeRelayCount=Object.values(activeRelays).filter(v=>v).length;
-    const totalRelays=[...new Set(circuitGroups.map(g=>g.relayGroup).filter(r=>r!=='none'))].length;
-
-    el.innerHTML=`
-        <div class="summary-item" style="background:${bgMap[st]};color:${fgMap[st]}"><div class="label">Worst Circuit Drop</div><div class="value">${worst.totalDrop.toFixed(3)}V</div><div class="sub">${worst.pct.toFixed(2)}% &bull; ${worst.name}</div></div>
-        <div class="summary-item" style="background:var(--accent-light);color:var(--accent)"><div class="label">Active Circuits</div><div class="value">${activeCircuits.length}</div><div class="sub">${passCt} pass, ${failCt} fail</div></div>
-        <div class="summary-item" style="background:var(--card);border:1px solid var(--border)"><div class="label">Max Wire Current</div><div class="value">${maxCur.toFixed(1)}A</div><div class="sub">${maxCurWire}</div></div>
-        <div class="summary-item" style="background:var(--card);border:1px solid var(--border)"><div class="label">Scenario</div><div class="value">${activeRelayCount}/${totalRelays}</div><div class="sub">relays active</div></div>
-    `;
-}
-
-document.querySelectorAll('#voltage,#material,#maxDrop').forEach(el=>{
-    el.addEventListener('input',()=>{if(nwfData){activeGroup=null;renderAll();}});
-    el.addEventListener('change',()=>{if(nwfData){activeGroup=null;renderAll();}});
-});
-</script>
+<script src="js/parser.js"></script>
+<script src="js/calculator.js"></script>
+<script src="js/svg.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
