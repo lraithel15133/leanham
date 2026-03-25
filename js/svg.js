@@ -70,13 +70,6 @@ function renderDrawing() {
     }
     if (highlightedConn) {
         hlConns.add(highlightedConn);
-        for (const w of nwfData.wires) {
-            if ((w.from && w.from.conn === highlightedConn) || (w.to && w.to.conn === highlightedConn)) {
-                if (wireRoutes[w.name]) for (const br of wireRoutes[w.name]) hlBranches.add(br);
-                if (w.from) hlConns.add(w.from.conn);
-                if (w.to) hlConns.add(w.to.conn);
-            }
-        }
     }
     const hasHighlight = activeGroup !== null || highlightedConn;
 
@@ -134,14 +127,19 @@ function renderDrawing() {
             if (worstPct > 0) { const t = Math.min(scaledPct / p.maxDropPct, 1.5); color = heatColor(scaledPct, p.maxDropPct); opacity = .5 + Math.min(t, 1) * .5; width = 2.5 + Math.min(t, 1) * 2.5; }
         }
         html += `<polyline points="${ptStr}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round" opacity="${opacity}" />`;
-        if (isHL && br.bundle) {
+        if ((isHL || (!hasHighlight && worstPct > p.maxDropPct * 0.4)) && br.bundle) {
             const mid = pts[Math.floor(pts.length / 2)];
             const grp = branchWorstGroup.get(br);
-            const label = grp ? `${worstPct.toFixed(2)}% (${grp.pct.toFixed(1)}% total)` : `${worstPct.toFixed(2)}%`;
-            html += `<text x="${mid.x}" y="${mid.y - 4}" text-anchor="middle" font-size="3" fill="${color}" font-weight="600">${label}</text>`;
-        } else if (!hasHighlight && worstPct > p.maxDropPct * 0.4 && br.bundle) {
-            const mid = pts[Math.floor(pts.length / 2)];
-            html += `<text x="${mid.x}" y="${mid.y - 4}" text-anchor="middle" font-size="2.5" fill="${color}" font-weight="600" opacity="${opacity}">${worstPct.toFixed(2)}%</text>`;
+            const sharePct = grp && grp.pct > 0 ? (worstPct / grp.pct * 100) : 0;
+            const label = grp ? `${sharePct.toFixed(0)}% of total` : `${worstPct.toFixed(1)}%`;
+            const fs = isHL ? 3 : 2.5;
+            const padX = 1.5, padY = 1;
+            const tw = label.length * fs * 0.55;
+            const rw = tw + padX * 2, rh = fs + padY * 2;
+            const rx = mid.x - rw / 2, ry = mid.y - 4 - fs - padY;
+            const bgFill = isDark ? '#1a1a1a' : '#fff';
+            html += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" rx="1" fill="${bgFill}" stroke="${color}" stroke-width="0.4" opacity="${opacity}" />`;
+            html += `<text x="${mid.x}" y="${mid.y - 4}" text-anchor="middle" font-size="${fs}" fill="${color}" font-weight="600" opacity="${opacity}">${label}</text>`;
         }
     }
 
