@@ -112,6 +112,7 @@ function renderDrawing() {
 
     let html = `<g id="svgRoot" transform="translate(${svgTransform.x},${svgTransform.y}) scale(${svgTransform.scale})">`;
     const bc = isDark ? '#444' : '#ccc';
+    const pendingLabels = [];
 
     for (const br of dsiData.branches) {
         const pts = [br.fromPos, ...br.waypoints, br.toPos];
@@ -133,14 +134,20 @@ function renderDrawing() {
             const sharePct = grp && grp.pct > 0 ? (worstPct / grp.pct * 100) : 0;
             const label = grp ? `${sharePct.toFixed(0)}% of total` : `${worstPct.toFixed(1)}%`;
             const fs = isHL ? 3 : 2.5;
-            const padX = 1.5, padY = 1;
-            const tw = label.length * fs * 0.55;
-            const rw = tw + padX * 2, rh = fs + padY * 2;
-            const rx = mid.x - rw / 2, ry = mid.y - 4 - fs - padY;
-            const bgFill = isDark ? '#1a1a1a' : '#fff';
-            html += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" rx="1" fill="${bgFill}" stroke="${color}" stroke-width="0.4" opacity="${opacity}" />`;
-            html += `<text x="${mid.x}" y="${mid.y - 4}" text-anchor="middle" font-size="${fs}" fill="${color}" font-weight="600" opacity="${opacity}">${label}</text>`;
+            pendingLabels.push({ mid, label, fs, color });
         }
+    }
+
+    // Draw labels after all branches so they always render on top
+    const bgFill = isDark ? '#1a1a1a' : '#fff';
+    const bgStroke = isDark ? '#555' : '#ccc';
+    for (const { mid, label, fs, color } of pendingLabels) {
+        const padX = 2, padY = 1.2;
+        const tw = label.length * fs * 0.58;
+        const rw = tw + padX * 2, rh = fs + padY * 2;
+        const rx = mid.x - rw / 2, ry = mid.y - 5 - fs - padY;
+        html += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" rx="1.2" fill="${bgFill}" stroke="${bgStroke}" stroke-width="0.5" />`;
+        html += `<text x="${mid.x}" y="${mid.y - 5}" text-anchor="middle" font-size="${fs}" fill="${color}" font-weight="700" dominant-baseline="auto">${label}</text>`;
     }
 
     for (const [name, pos] of Object.entries(dsiData.nodePos)) {
