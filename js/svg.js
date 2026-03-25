@@ -84,10 +84,13 @@ function renderDrawing() {
         return len || 1;
     }
 
-    // Map each branch to the worst proportional drop % flowing through it
+    // Map each branch to the worst proportional drop % flowing through it,
+    // and also accumulate per-group contributions for accurate % of total labels
     const branchWorstPct = new Map();
     const branchWorstGroup = new Map();
-    for (const g of circuitGroups) {
+    const branchGroupPct = new Map(); // branch -> Map<groupIndex, accumulated pct>
+    for (let gi = 0; gi < circuitGroups.length; gi++) {
+        const g = circuitGroups[gi];
         const isActive = g.relayGroup === 'none' || activeRelays[g.relayGroup] !== false;
         if (!isActive) continue;
         for (const w of [...g.supplyWires, ...g.returnWires]) {
@@ -99,6 +102,11 @@ function renderDrawing() {
             const totalLen = route.reduce((s, br) => s + branchPixelLen(br), 0) || 1;
             for (const br of route) {
                 const segPct = wirePct * (branchPixelLen(br) / totalLen);
+                // Accumulate this group's contribution to this branch
+                if (!branchGroupPct.has(br)) branchGroupPct.set(br, new Map());
+                const gmap = branchGroupPct.get(br);
+                gmap.set(gi, (gmap.get(gi) || 0) + segPct);
+                // Track worst across all groups (for heatmap colouring)
                 const prev = branchWorstPct.get(br) || 0;
                 if (segPct > prev) { branchWorstPct.set(br, segPct); branchWorstGroup.set(br, g); }
             }
@@ -130,9 +138,17 @@ function renderDrawing() {
         html += `<polyline points="${ptStr}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round" opacity="${opacity}" />`;
         if ((isHL || (!hasHighlight && worstPct > p.maxDropPct * 0.4)) && br.bundle) {
             const mid = pts[Math.floor(pts.length / 2)];
-            const grp = branchWorstGroup.get(br);
-            const sharePct = grp && grp.pct > 0 ? (worstPct / grp.pct * 100) : 0;
-            const label = grp ? `${sharePct.toFixed(0)}% of total` : `${worstPct.toFixed(1)}%`;
+            let label;
+            if (activeGroup !== null) {
+                const g = circuitGroups[activeGroup];
+                const segPct = branchGroupPct.get(br)?.get(activeGroup) || 0;
+                const sharePct = g && g.pct > 0 ? (segPct / g.pct * 100) : 0;
+                label = `${sharePct.toFixed(0)}% of total`;
+            } else {
+                const grp = branchWorstGroup.get(br);
+                const sharePct = grp && grp.pct > 0 ? (worstPct / grp.pct * 100) : 0;
+                label = grp ? `${sharePct.toFixed(0)}% of total` : `${worstPct.toFixed(1)}%`;
+            }
             const fs = isHL ? 3 : 2.5;
             pendingLabels.push({ mid, label, fs, color });
         }
