@@ -80,8 +80,18 @@ function renderDrawing() {
     }
     const hasHighlight = activeGroup !== null || highlightedConn;
 
-    // Map each branch to the worst per-wire drop % flowing through it,
-    // and track which circuit group that wire belongs to
+    // Precompute pixel length of each branch
+    function branchPixelLen(br) {
+        const pts = [br.fromPos, ...br.waypoints, br.toPos];
+        let len = 0;
+        for (let i = 1; i < pts.length; i++) {
+            const dx = pts[i].x - pts[i-1].x, dy = pts[i].y - pts[i-1].y;
+            len += Math.sqrt(dx*dx + dy*dy);
+        }
+        return len || 1;
+    }
+
+    // Map each branch to the worst proportional drop % flowing through it
     const branchWorstPct = new Map();
     const branchWorstGroup = new Map();
     for (const g of circuitGroups) {
@@ -92,9 +102,12 @@ function renderDrawing() {
             const vd = calcDrop(w.lengthMM, getCSA(w), cur, p.resistivity);
             const wirePct = (vd / p.voltage) * 100;
             const route = wireRoutes[w.name] || [];
+            // Distribute drop proportionally across branches by pixel length
+            const totalLen = route.reduce((s, br) => s + branchPixelLen(br), 0) || 1;
             for (const br of route) {
+                const segPct = wirePct * (branchPixelLen(br) / totalLen);
                 const prev = branchWorstPct.get(br) || 0;
-                if (wirePct > prev) { branchWorstPct.set(br, wirePct); branchWorstGroup.set(br, g); }
+                if (segPct > prev) { branchWorstPct.set(br, segPct); branchWorstGroup.set(br, g); }
             }
         }
     }
