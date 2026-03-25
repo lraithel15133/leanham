@@ -1,6 +1,28 @@
 // ═══════════════════════════════════════════════════════════
 // SVG DRAWING
 // ═══════════════════════════════════════════════════════════
+function heatColor(pct, maxPct) {
+    // 0% → green, ~70% of max → yellow, 100%+ of max → red
+    const t = Math.min(pct / maxPct, 1.4);
+    let r, g, b;
+    if (t <= 0.5) {
+        // green to yellow-green
+        r = Math.round(34 + t * 2 * (220 - 34));
+        g = Math.round(163 + t * 2 * (200 - 163));
+        b = Math.round(58 - t * 2 * 58);
+    } else if (t <= 1) {
+        // yellow to orange-red
+        const t2 = (t - 0.5) * 2;
+        r = Math.round(220 + t2 * (239 - 220));
+        g = Math.round(200 - t2 * (200 - 68));
+        b = Math.round(0 + t2 * 68);
+    } else {
+        // past limit — deep red
+        r = 220; g = 38; b = 38;
+    }
+    return `rgb(${r},${g},${b})`;
+}
+
 function renderDrawing() {
     if (!dsiData || !nwfData) return;
     const svg = document.getElementById('harnessSvg');
@@ -58,13 +80,19 @@ function renderDrawing() {
     }
     const hasHighlight = activeGroup !== null || highlightedConn;
 
+    // Map each branch to the worst circuit group drop % that flows through it
     const branchWorstPct = new Map();
-    for (const w of nwfData.wires) {
-        const route = wireRoutes[w.name] || [];
-        const cur = wireCurrents[w.name] || 0;
-        const vd = calcDrop(w.lengthMM, getCSA(w), cur, p.resistivity);
-        const pct = (vd / p.voltage) * 100;
-        for (const br of route) { const c = branchWorstPct.get(br) || 0; if (pct > c) branchWorstPct.set(br, pct); }
+    const branchWorstGroup = new Map();
+    for (const g of circuitGroups) {
+        const isActive = g.relayGroup === 'none' || activeRelays[g.relayGroup] !== false;
+        if (!isActive) continue;
+        for (const w of [...g.supplyWires, ...g.returnWires]) {
+            const route = wireRoutes[w.name] || [];
+            for (const br of route) {
+                const prev = branchWorstPct.get(br) || 0;
+                if (g.pct > prev) { branchWorstPct.set(br, g.pct); branchWorstGroup.set(br, g); }
+            }
+        }
     }
 
     let html = `<g id="svgRoot" transform="translate(${svgTransform.x},${svgTransform.y}) scale(${svgTransform.scale})">`;
@@ -77,17 +105,19 @@ function renderDrawing() {
         const worstPct = branchWorstPct.get(br) || 0;
         let color = bc, width = 3, opacity = .5;
         if (hasHighlight) {
-            if (isHL) { color = worstPct > p.maxDropPct ? '#ef4444' : worstPct > p.maxDropPct * .7 ? '#f59e0b' : '#22c55e'; width = 5; opacity = 1; }
+            if (isHL) { color = heatColor(worstPct, p.maxDropPct); width = 5; opacity = 1; }
             else { opacity = .15; }
         } else {
-            if (worstPct > 0) { const t = Math.min(worstPct / p.maxDropPct, 1.5); color = t > 1 ? '#ef4444' : t > .7 ? '#f59e0b' : isDark ? '#555' : '#bbb'; opacity = .4 + t * .4; width = 2 + t * 2; }
+            if (worstPct > 0) { const t = Math.min(worstPct / p.maxDropPct, 1.5); color = heatColor(worstPct, p.maxDropPct); opacity = .5 + Math.min(t, 1) * .5; width = 2.5 + Math.min(t, 1) * 2.5; }
         }
         html += `<polyline points="${ptStr}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round" opacity="${opacity}" />`;
-        if (isHL && br.bundle) {
+        if (isHL) {
             const mid = pts[Math.floor(pts.length / 2)];
-            const branchWires = nwfData.wires.filter(w => (wireRoutes[w.name] || []).includes(br));
-            const totalCur = branchWires.reduce((s, w) => Math.max(s, wireCurrents[w.name] || 0), 0);
-            if (totalCur > 0) html += `<text x="${mid.x}" y="${mid.y - 4}" text-anchor="middle" font-size="3.2" fill="${color}" font-weight="600">${totalCur.toFixed(1)}A</text>`;
+            const grp = branchWorstGroup.get(br);
+            if (grp) html += `<text x="${mid.x}" y="${mid.y - 4}" text-anchor="middle" font-size="3.2" fill="${color}" font-weight="600">${grp.pct.toFixed(1)}%</text>`;
+        } else if (!hasHighlight && worstPct > 0) {
+            const mid = pts[Math.floor(pts.length / 2)];
+            if (worstPct > p.maxDropPct * 0.5 && br.bundle) html += `<text x="${mid.x}" y="${mid.y - 4}" text-anchor="middle" font-size="2.5" fill="${color}" font-weight="600" opacity="${opacity}">${worstPct.toFixed(1)}%</text>`;
         }
     }
 
@@ -125,7 +155,7 @@ function renderDrawing() {
     const legend = document.getElementById('svgLegend');
     if (highlightedConn) legend.innerHTML = `Highlighting: <strong>${highlightedConn}</strong>`;
     else if (activeGroup !== null) legend.innerHTML = `Showing: <strong>${circuitGroups[activeGroup]?.name || ''}</strong> | Click to deselect`;
-    else legend.innerHTML = 'Heat map: wire voltage drop | Click a circuit group to isolate';
+    else legend.innerHTML = 'Heat map: circuit group voltage drop % | Click a group to isolate';
 }
 
 // ═══════════════════════════════════════════════════════════
