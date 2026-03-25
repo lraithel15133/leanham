@@ -43,7 +43,7 @@ function renderLoadConfig() {
         const cfg = connConfig[c.name] || { role: 'passthrough', current: 0 };
         const desc = (c.params.DESCRIPTION || '').replace(/"/g, '');
         const pins = c.pins.map(p => p.name).join(', ');
-        return `<tr data-conn="${c.name}" onmouseenter="onConnHover('${c.name}')" onmouseleave="onConnHover(null)">
+        return `<tr data-conn="${c.name}" onclick="onConnClick('${c.name}')" style="cursor:pointer">
             <td><strong>${c.name}</strong></td>
             <td style="font-size:.75rem;max-width:200px;overflow:hidden;text-overflow:ellipsis">${desc}</td>
             <td><select class="role-${cfg.role}" onchange="setRole('${c.name}',this.value)" onclick="event.stopPropagation()">
@@ -61,21 +61,11 @@ function renderLoadConfig() {
     }).join('');
 }
 
-function onConnHover(connName) {
-    highlightedConn = connName;
-    if (dsiData && nwfData) {
-        renderDrawing();
-        if (connName) {
-            const el = document.getElementById('drawingLayout');
-            if (el && !isElementInViewport(el)) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-    }
+function onConnClick(connName) {
+    highlightedConn = highlightedConn === connName ? null : connName;
+    if (dsiData && nwfData) renderDrawing();
 }
 
-function isElementInViewport(el) {
-    const r = el.getBoundingClientRect();
-    return r.top < window.innerHeight && r.bottom > 0;
-}
 
 function setRole(conn, role) { connConfig[conn].role = role; connConfig[conn].current = role === 'load' ? 5 : role === 'signal' ? 0.15 : 0; activeGroup = null; renderAll(); }
 function setCurrent(conn, val) { connConfig[conn].current = parseFloat(val) || 0; activeGroup = null; renderAll(); }

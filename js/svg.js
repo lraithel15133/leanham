@@ -177,7 +177,7 @@ function renderDrawing() {
     html += '</g>';
     svg.innerHTML = html;
     const legend = document.getElementById('svgLegend');
-    if (highlightedConn) legend.innerHTML = `Highlighting: <strong>${highlightedConn}</strong>`;
+    if (highlightedConn) legend.innerHTML = `Highlighting: <strong>${highlightedConn}</strong> | Click row again to deselect`;
     else if (activeGroup !== null) legend.innerHTML = `Showing: <strong>${circuitGroups[activeGroup]?.name || ''}</strong> | Click to deselect`;
     else legend.innerHTML = 'Heat map: circuit group voltage drop % | Click a group to isolate';
 }
