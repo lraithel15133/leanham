@@ -78,6 +78,7 @@ function clearDSI() {
 function onDataChange() {
     const hasNWF = !!nwfData;
     document.getElementById('resultsSection').classList.toggle('hidden', !hasNWF);
+    document.getElementById('drawingLayout').classList.toggle('hidden', !hasNWF);
     if (hasNWF) {
         const svgContainer = document.getElementById('svgContainer');
         const placeholder = document.getElementById('svgPlaceholder');
