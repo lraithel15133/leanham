@@ -109,20 +109,26 @@
             <div class="table-wrap">
                 <table>
                     <thead><tr>
-                        <th>Wire</th><th>From</th><th>To</th><th>Length mm</th><th>CSA mm&sup2;</th><th>Color</th><th>Current A</th><th>V Drop</th><th>%</th><th></th>
+                        <th class="sortable">Wire</th><th class="sortable">From</th><th class="sortable">To</th><th class="sortable">Length mm</th><th class="sortable">CSA mm&sup2;</th><th class="sortable">Color</th><th class="sortable">Current A</th><th class="sortable">V Drop</th><th class="sortable">%</th><th></th>
                     </tr></thead>
                     <tbody id="wireBody"></tbody>
                 </table>
             </div>
         </div>
         <div class="card tab-content hidden" id="tab-paths">
-            <h3>Terminal-to-Terminal Paths</h3>
-            <div id="pathsList"></div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr>
+                        <th class="sortable">From</th><th class="sortable">To</th><th class="sortable">Wire</th><th class="sortable">Current A</th><th class="sortable">V Drop</th><th class="sortable">%</th><th></th>
+                    </tr></thead>
+                    <tbody id="pathBody"></tbody>
+                </table>
+            </div>
         </div>
         <div class="card tab-content hidden" id="tab-spools">
             <div class="table-wrap">
                 <table>
-                    <thead><tr><th>Part No</th><th>Material</th><th>AWG</th><th>CSA mm&sup2;</th><th>OD mm</th><th>Color</th></tr></thead>
+                    <thead><tr><th class="sortable">Part No</th><th class="sortable">Material</th><th class="sortable">AWG</th><th class="sortable">CSA mm&sup2;</th><th class="sortable">OD mm</th><th class="sortable">Color</th></tr></thead>
                     <tbody id="spoolBody"></tbody>
                 </table>
             </div>
@@ -130,7 +136,7 @@
         <div class="card tab-content hidden" id="tab-connectors">
             <div class="table-wrap">
                 <table>
-                    <thead><tr><th>Ref Des</th><th>Model</th><th>Description</th><th>Pins</th></tr></thead>
+                    <thead><tr><th class="sortable">Ref Des</th><th class="sortable">Model</th><th class="sortable">Description</th><th class="sortable">Pins</th></tr></thead>
                     <tbody id="connBody"></tbody>
                 </table>
             </div>
@@ -142,6 +148,7 @@
 <script src="js/calculator.js"></script>
 <script src="js/svg.js"></script>
 <script src="js/renderer.js"></script>
+<script src="js/sort.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

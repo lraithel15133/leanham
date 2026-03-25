@@ -17,6 +17,7 @@ function renderAll() {
     renderGroups(p);
     renderSummary(p);
     updateTabCounts();
+    if (typeof reapplySorts === 'function') reapplySorts();
     if (dsiData) renderDrawing();
 }
 
@@ -126,6 +127,7 @@ function recalcFromScenario() {
     renderWires(p);
     renderGroups(p);
     renderSummary(p);
+    if (typeof reapplySorts === 'function') reapplySorts();
     if (dsiData) renderDrawing();
 }
 
@@ -173,14 +175,11 @@ function renderPaths(p) {
     }
     directPaths.sort((a, b) => b.vd - a.vd);
     document.querySelector('[data-tab="paths"]').textContent = `All Paths (${directPaths.length})`;
-    document.getElementById('pathsList').innerHTML = directPaths.map(dp => {
+    document.getElementById('pathBody').innerHTML = directPaths.map(dp => {
         const st = statusOf(dp.pct, p.maxDropPct);
-        return `<div style="padding:5px 0;border-bottom:1px solid var(--border);font-size:.8rem">
-            <span>${dp.from} &harr; ${dp.to}</span>
-            <span class="badge badge-${st}" style="margin-left:6px">${dp.vd.toFixed(4)}V (${dp.pct.toFixed(2)}%)</span>
-            <span style="font-size:.72rem;color:var(--text-muted);margin-left:6px">${dp.wire.name} @ ${(wireCurrents[dp.wire.name] || 0).toFixed(1)}A</span>
-        </div>`;
-    }).join('') || '<div style="color:var(--text-muted);padding:8px;font-size:.82rem">No paths.</div>';
+        const cur = wireCurrents[dp.wire.name] || 0;
+        return `<tr><td>${dp.from}</td><td>${dp.to}</td><td><strong>${dp.wire.name}</strong></td><td class="num">${cur.toFixed(2)}</td><td class="num">${dp.vd.toFixed(4)}</td><td class="num">${dp.pct.toFixed(2)}%</td><td><span class="badge badge-${st}">${st === 'fail' ? 'FAIL' : st === 'warn' ? 'WARN' : 'OK'}</span></td></tr>`;
+    }).join('');
 }
 
 function renderGroups(p) {
