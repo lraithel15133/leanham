@@ -61,8 +61,13 @@ function renderLoadConfig() {
     }).join('');
 }
 
+let _connTimer = null;
 function onConnClick(connName) {
     highlightedConn = highlightedConn === connName ? null : connName;
+    clearTimeout(_connTimer);
+    if (highlightedConn) {
+        _connTimer = setTimeout(() => { highlightedConn = null; if (dsiData && nwfData) renderDrawing(); }, 20000);
+    }
     if (dsiData && nwfData) renderDrawing();
 }
 
