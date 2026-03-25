@@ -52,7 +52,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 
 .drawing-layout{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .drawing-panel{flex:3;min-width:380px}
-.groups-panel{flex:1;min-width:270px;max-height:520px;overflow-y:auto}
+.groups-panel{flex:1;min-width:270px;max-height:520px;display:flex;flex-direction:column}
 
 .svg-container{background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;position:relative;cursor:grab}
 .svg-container:active{cursor:grabbing}
@@ -65,6 +65,8 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 .svg-placeholder .placeholder-icon{font-size:2rem}
 .svg-container.no-dsi svg{opacity:0}
 
+.groups-panel>.card{display:flex;flex-direction:column;overflow:hidden;min-height:0}
+#groupsList{overflow-y:auto;flex:1;min-height:0}
 .group-item{border:1px solid var(--border);border-radius:6px;margin-bottom:6px;overflow:hidden;transition:all .15s;cursor:pointer}
 .group-item:hover{border-color:var(--accent)}
 .group-item.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-light)}
@@ -101,4 +103,4 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 .scenario-preset{padding:3px 10px;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--text);cursor:pointer;font-size:.75rem}
 .scenario-preset:hover{border-color:var(--accent);color:var(--accent)}
 
-@media(max-width:700px){body{padding:6px}.drawing-layout{flex-direction:column}.drawing-panel{min-width:unset}.groups-panel{max-height:300px}.svg-container svg{height:280px}}
+@media(max-width:700px){body{padding:6px}.drawing-layout{flex-direction:column}.drawing-panel{min-width:unset}.groups-panel{max-height:300px}#groupsList{max-height:none}.svg-container svg{height:280px}}
