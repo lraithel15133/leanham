@@ -112,6 +112,11 @@ function renderDrawing() {
         }
     }
 
+    // Normalize heatmap so the worst segment = full red
+    const allPcts = [...branchWorstPct.values()];
+    const maxSegPct = allPcts.length ? Math.max(...allPcts) : 1;
+    function normPct(raw) { return maxSegPct > 0 ? (raw / maxSegPct) * p.maxDropPct : 0; }
+
     let html = `<g id="svgRoot" transform="translate(${svgTransform.x},${svgTransform.y}) scale(${svgTransform.scale})">`;
     const bc = isDark ? '#444' : '#ccc';
 
@@ -120,12 +125,13 @@ function renderDrawing() {
         const ptStr = pts.map(p2 => `${p2.x},${p2.y}`).join(' ');
         const isHL = hlBranches.has(br);
         const worstPct = branchWorstPct.get(br) || 0;
+        const scaledPct = normPct(worstPct);
         let color = bc, width = 3, opacity = .5;
         if (hasHighlight) {
-            if (isHL) { color = heatColor(worstPct, p.maxDropPct); width = 5; opacity = 1; }
+            if (isHL) { color = heatColor(scaledPct, p.maxDropPct); width = 5; opacity = 1; }
             else { opacity = .15; }
         } else {
-            if (worstPct > 0) { const t = Math.min(worstPct / p.maxDropPct, 1.5); color = heatColor(worstPct, p.maxDropPct); opacity = .5 + Math.min(t, 1) * .5; width = 2.5 + Math.min(t, 1) * 2.5; }
+            if (worstPct > 0) { const t = Math.min(scaledPct / p.maxDropPct, 1.5); color = heatColor(scaledPct, p.maxDropPct); opacity = .5 + Math.min(t, 1) * .5; width = 2.5 + Math.min(t, 1) * 2.5; }
         }
         html += `<polyline points="${ptStr}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round" opacity="${opacity}" />`;
         if (isHL && br.bundle) {
