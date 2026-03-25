@@ -80,17 +80,21 @@ function renderDrawing() {
     }
     const hasHighlight = activeGroup !== null || highlightedConn;
 
-    // Map each branch to the worst circuit group drop % that flows through it
+    // Map each branch to the worst per-wire drop % flowing through it,
+    // and track which circuit group that wire belongs to
     const branchWorstPct = new Map();
     const branchWorstGroup = new Map();
     for (const g of circuitGroups) {
         const isActive = g.relayGroup === 'none' || activeRelays[g.relayGroup] !== false;
         if (!isActive) continue;
         for (const w of [...g.supplyWires, ...g.returnWires]) {
+            const cur = wireCurrents[w.name] || 0;
+            const vd = calcDrop(w.lengthMM, getCSA(w), cur, p.resistivity);
+            const wirePct = (vd / p.voltage) * 100;
             const route = wireRoutes[w.name] || [];
             for (const br of route) {
                 const prev = branchWorstPct.get(br) || 0;
-                if (g.pct > prev) { branchWorstPct.set(br, g.pct); branchWorstGroup.set(br, g); }
+                if (wirePct > prev) { branchWorstPct.set(br, wirePct); branchWorstGroup.set(br, g); }
             }
         }
     }
@@ -111,13 +115,14 @@ function renderDrawing() {
             if (worstPct > 0) { const t = Math.min(worstPct / p.maxDropPct, 1.5); color = heatColor(worstPct, p.maxDropPct); opacity = .5 + Math.min(t, 1) * .5; width = 2.5 + Math.min(t, 1) * 2.5; }
         }
         html += `<polyline points="${ptStr}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round" opacity="${opacity}" />`;
-        if (isHL) {
+        if (isHL && br.bundle) {
             const mid = pts[Math.floor(pts.length / 2)];
             const grp = branchWorstGroup.get(br);
-            if (grp) html += `<text x="${mid.x}" y="${mid.y - 4}" text-anchor="middle" font-size="3.2" fill="${color}" font-weight="600">${grp.pct.toFixed(1)}%</text>`;
-        } else if (!hasHighlight && worstPct > 0) {
+            const label = grp ? `${worstPct.toFixed(2)}% (${grp.pct.toFixed(1)}% total)` : `${worstPct.toFixed(2)}%`;
+            html += `<text x="${mid.x}" y="${mid.y - 4}" text-anchor="middle" font-size="3" fill="${color}" font-weight="600">${label}</text>`;
+        } else if (!hasHighlight && worstPct > p.maxDropPct * 0.4 && br.bundle) {
             const mid = pts[Math.floor(pts.length / 2)];
-            if (worstPct > p.maxDropPct * 0.5 && br.bundle) html += `<text x="${mid.x}" y="${mid.y - 4}" text-anchor="middle" font-size="2.5" fill="${color}" font-weight="600" opacity="${opacity}">${worstPct.toFixed(1)}%</text>`;
+            html += `<text x="${mid.x}" y="${mid.y - 4}" text-anchor="middle" font-size="2.5" fill="${color}" font-weight="600" opacity="${opacity}">${worstPct.toFixed(2)}%</text>`;
         }
     }
 
